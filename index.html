@@ -1,0 +1,54 @@
+<!-- Graphics Example Code.
+index.html - The web page document containing the canvas (drawing surface).  It launches your JavaScript files. //-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        /* Set additional styling options for the columns*/
+        .column {
+            float: left;
+            width: 50%;
+        }
+
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" href="./assets/fav.ico">
+    <title>WebGL</title>
+</head>
+
+<body style="background: DarkGray">
+    <div class="row">
+        <div class="column">
+            <pre>Input: </pre>
+            <textarea id="input" cols="80" rows="5"></textarea>
+            <pre>metalness</pre>
+            <input type="range" id="met" min="0" max="1" step="0.01"></slider>
+            <pre>roughness</pre>
+            <input type="range" id="rough" min="0" max="1" step="0.01"></slider>
+            <pre>exposure</pre>
+            <input type="range" id="exp" min="0" max="10" step="0.1"></slider>
+        </div>
+        <div class="column">
+            <pre>Output: </pre>
+            <textarea id="output" cols="80" rows="5"></textarea>
+        </div>
+    </div>
+    <div id="main-section" class="document-builder"></div>
+    <script type=module>
+
+const element_to_replace = document.querySelector ("#main-section");
+import {main_scene} from './main-scene.js';
+const root = new main_scene ();                                                   
+root.render_layout (element_to_replace);
+</script>
+
+</body>
+
+</html>
