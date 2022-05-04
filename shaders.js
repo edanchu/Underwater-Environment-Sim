@@ -920,8 +920,10 @@ shaders.CubemapShader = class CubemapShader extends tiny.Shader {
 
 shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    material.lTextures().lAlbedo.activate(context, 6);
+    material.basic().activate(context, 6);
     context.uniform1i(gpu_addresses.lAlbedo, 6);
+    material.post().activate(context, 7);
+    context.uniform1i(gpu_addresses.postProcess, 7);
 
     context.uniform1f(gpu_addresses.exposure, material.exposure);
   }
@@ -946,12 +948,14 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
     return this.shared_glsl_code() + `
 
     uniform sampler2D lAlbedo;
+    uniform sampler2D postProcess;
     uniform float exposure;
 
     out vec4 FragColor;
 
     void main(){		
       vec3 color = texelFetch(lAlbedo, ivec2(gl_FragCoord.xy), 0).xyz;
+      color += texelFetch(postProcess, ivec2(gl_FragCoord.xy), 0).xyz;
 
       const float gamma = 2.2;
     
@@ -962,6 +966,110 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
       mapped = pow(mapped, vec3(1.0 / gamma));
     
       FragColor = vec4(mapped, 1.0);
+    }
+    `;
+  }
+}
+
+shaders.CopyBright = class CopyBright extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    material.lTextures().lAlbedo.activate(context, 6);
+    context.uniform1i(gpu_addresses.lAlbedo, 6);
+
+    context.uniform1f(gpu_addresses.threshold, material.threshold);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+
+    void main() { 
+      gl_Position = vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    uniform sampler2D lAlbedo;
+    uniform float threshold;
+
+    out vec4 FragColor;
+
+    void main(){		
+      vec3 albedo = texelFetch(lAlbedo, ivec2(gl_FragCoord.xy), 0).xyz;
+      
+      vec3 color = vec3(0.0);
+      float brightness = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
+      if (brightness > threshold){
+        color = albedo;
+      }
+    
+      FragColor = vec4(color, 1.0);
+    }
+    `;
+  }
+}
+
+shaders.GBlur = class GBlur extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    material.from().activate(context, 6);
+    context.uniform1i(gpu_addresses.image, 6);
+
+    context.uniform1i(gpu_addresses.horizontal, material.horizontal);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+
+    void main() { 
+      gl_Position = vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    uniform sampler2D image;
+    uniform bool horizontal;
+
+    out vec4 FragColor;
+
+    void main(){
+      float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
+      ivec2 texCoords = ivec2(gl_FragCoord.xy);
+      vec3 color = texelFetch(image, texCoords, 0).xyz * weight[0];
+      vec3 col = texelFetch(image, texCoords, 0).xyz;
+      
+      if(horizontal){
+        for(int i = 1; i < 5; ++i){
+          color += texelFetch(image, texCoords + ivec2(i, 0), 0).rgb * weight[i];
+          color += texelFetch(image, texCoords - ivec2(i, 0), 0).rgb * weight[i];
+        }
+      }
+      else{
+        for(int i = 1; i < 5; ++i){
+          color += texelFetch(image, texCoords + ivec2(0, i), 0).rgb * weight[i];
+          color += texelFetch(image, texCoords - ivec2(0, i), 0).rgb * weight[i];
+        }
+      }
+    
+      FragColor = vec4(color, 1.0);
     }
     `;
   }

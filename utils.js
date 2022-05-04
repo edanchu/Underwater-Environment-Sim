@@ -245,8 +245,9 @@ utils.BufferedTexture = class BufferedTexture {
 }
 
 utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, screenWidth, screenHeight) {
-    let gTextures = {}
+    let gTextures = {};
     let lTextures = {};
+    let pTextures = {};
     let FBOs = {};
 
     if (!gl.getExtension("EXT_color_buffer_float")) {
@@ -256,15 +257,18 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
+    //shadows buffer
     let lightDepthTextureGPU = gl.createTexture();
     let lightDepthTexture = new utils.BufferedTexture(lightDepthTextureGPU);
 
 
+    //light buffer
     let lDepthGPU = gl.createTexture();
     lTextures.lDepth = new utils.BufferedTexture(lDepthGPU);
     let lAlbedoGPU = gl.createTexture();
     lTextures.lAlbedo = new utils.BufferedTexture(lAlbedoGPU);
 
+    //gbuffer
     let gDepthGPU = gl.createTexture();
     gTextures.gDepth = new utils.BufferedTexture(gDepthGPU);
     let gAlbedoGPU = gl.createTexture();
@@ -276,7 +280,15 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     let gNormalGPU = gl.createTexture();
     gTextures.gNormal = new utils.BufferedTexture(gNormalGPU);
 
-    //shadow light
+    //bloom buffers
+    let bBrightGPU = gl.createTexture();
+    pTextures.bBright = new utils.BufferedTexture(bBrightGPU);
+
+    //generic postProcess
+    let pGenGPU = gl.createTexture();
+    pTextures.pGen = new utils.BufferedTexture(pGenGPU);
+
+    //shadow buffer
 
     gl.bindTexture(gl.TEXTURE_2D, lightDepthTextureGPU);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -390,8 +402,47 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
         return;
     }
 
+    //bBuffer
 
-    return [FBOs, gTextures, lTextures, lightDepthTexture];
+    gl.bindTexture(gl.TEXTURE_2D, bBrightGPU);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
+
+    FBOs.bBuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bBrightGPU, 0);
+
+    status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.log('fb status: ' + status.toString(16));
+        return;
+    }
+
+    //pBuffer
+
+    gl.bindTexture(gl.TEXTURE_2D, pGenGPU);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
+
+    FBOs.pBuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGenGPU, 0);
+
+    status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.log('fb status: ' + status.toString(16));
+        return;
+    }
+
+    return [FBOs, gTextures, lTextures, pTextures, lightDepthTexture];
 }
 
 utils.bindGBuffer = function bindGBuffer(gl, gBuffer) {
