@@ -280,12 +280,12 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     gTextures.gNormal = new utils.BufferedTexture(gNormalGPU);
 
     //bloom buffers
-    let bBrightGPU = gl.createTexture();
-    pTextures.bBright = new utils.BufferedTexture(bBrightGPU);
+    let pGen1GPU = gl.createTexture();
+    pTextures.pGen1 = new utils.BufferedTexture(pGen1GPU);
 
     //generic postProcess
-    let pGenGPU = gl.createTexture();
-    pTextures.pGen = new utils.BufferedTexture(pGenGPU);
+    let pGen2GPU = gl.createTexture();
+    pTextures.pGen2 = new utils.BufferedTexture(pGen2GPU);
 
     //shadow buffer
 
@@ -401,9 +401,9 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
         return;
     }
 
-    //bBuffer
+    //pBuffer1
 
-    gl.bindTexture(gl.TEXTURE_2D, bBrightGPU);
+    gl.bindTexture(gl.TEXTURE_2D, pGen1GPU);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -411,9 +411,9 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
 
-    FBOs.bBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bBrightGPU, 0);
+    FBOs.pBuffer1 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer1);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGen1GPU, 0);
 
     status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -421,9 +421,9 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
         return;
     }
 
-    //pBuffer
+    //pBuffer2
 
-    gl.bindTexture(gl.TEXTURE_2D, pGenGPU);
+    gl.bindTexture(gl.TEXTURE_2D, pGen2GPU);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -431,9 +431,9 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
 
-    FBOs.pBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGenGPU, 0);
+    FBOs.pBuffer2 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGen2GPU, 0);
 
     status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -482,18 +482,18 @@ utils.drawToScreen = function drawToScreen(context, quad, mat) {
 
 utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, FBOs, pTextures) {
     const gl = context.context;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     quad.draw(context, null, null, brightCopyMat, "TRIANGLE_STRIP");
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     for (let i = 0; i < iterations; ++i) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
-        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.bBright, horizontal: true }, "TRIANGLE_STRIP");
-        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
-        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.pGen, horizontal: false }, "TRIANGLE_STRIP");
+        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
+        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.pGen1, horizontal: true }, "TRIANGLE_STRIP");
+        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer1);
+        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.pGen2, horizontal: false }, "TRIANGLE_STRIP");
     }
 }
 
