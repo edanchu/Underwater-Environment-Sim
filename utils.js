@@ -481,6 +481,23 @@ utils.drawToScreen = function drawToScreen(context, quad, mat) {
     quad.draw(context, null, null, mat, "TRIANGLE_STRIP");
 }
 
+utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, FBOs, pTextures) {
+    const gl = context.context;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    quad.draw(context, null, null, brightCopyMat, "TRIANGLE_STRIP");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    for (let i = 0; i < iterations; ++i) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer);
+        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.bBright, horizontal: true }, "TRIANGLE_STRIP");
+        gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.bBuffer);
+        quad.draw(context, null, null, { ...blurMat, from: () => pTextures.pGen, horizontal: false }, "TRIANGLE_STRIP");
+    }
+}
+
 utils.Light = class Light {
     constructor(position, color, intensity = 1, size = null) {
         this.position = position;

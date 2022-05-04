@@ -917,7 +917,6 @@ shaders.CubemapShader = class CubemapShader extends tiny.Shader {
   }
 }
 
-
 shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     material.basic().activate(context, 6);

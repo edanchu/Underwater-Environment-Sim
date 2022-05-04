@@ -33,7 +33,7 @@ export class Test extends Component {
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
     this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen, exposure: 1.0 };
-    this.materials.gBlur = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
+    this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
 
     this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
     this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
@@ -73,7 +73,7 @@ export class Test extends Component {
 
 
     //deferred geometry
-    // this.shapes.ball.draw(context, this.uniforms, Mat4.identity().times(Mat4.translation(0, 0, 0)).times(Mat4.scale(1, 1, 1)), { ...this.materials.geometryMaterial, specularColor: vec4(document.getElementById("met").value, this.materials.geometryMaterial.specularColor[1], this.materials.geometryMaterial.specularColor[2], document.getElementById("rough").value) });
+    // this.shapes.ball.draw(context, this.uniforms, Mat4.identity().times(Mat4.translation(0, 5, 0)).times(Mat4.scale(1, 1, 1)), { ...this.materials.geometryMaterial, specularColor: vec4(document.getElementById("sld1").value, this.materials.geometryMaterial.specularColor[1], this.materials.geometryMaterial.specularColor[2], document.getElementById("sld2").value) });
     // this.shapes.cube.draw(context, this.uniforms, Mat4.identity().times(Mat4.translation(0, 4, 0)).times(Mat4.scale(2, 2, 2)), this.materials.brick);
     this.shapes.orca.draw(context, this.uniforms, Mat4.identity(), { ...this.materials.orca });
     // this.shapes.plane.draw(context, this.uniforms, Mat4.translation(-50, -5, -50).times(Mat4.scale(100, 1, 100)), { ...this.materials.geometryMaterial, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.1, 1, 0.03, 1) }, "TRIANGLE_STRIP")
@@ -92,22 +92,7 @@ export class Test extends Component {
     this.shapes.ball.draw(context, this.uniforms, Mat4.scale(500, 500, 500), { ...this.materials.plastic, color: color(120 / 255 / 5, 178 / 255 / 5, 196 / 255 / 5, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 },)
 
     //postprocess
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.bBuffer);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    this.shapes.quad.draw(context, null, null, { ...this.materials.brightCopyMat, threshold: 0.58 }, "TRIANGLE_STRIP");
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    for (let i = 0; i < 12; ++i) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer);
-      this.shapes.quad.draw(context, null, null, { ...this.materials.gBlur, from: () => this.pTextures.bBright, horizontal: true }, "TRIANGLE_STRIP");
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.bBuffer);
-      this.shapes.quad.draw(context, null, null, { ...this.materials.gBlur, from: () => this.pTextures.pGen, horizontal: false }, "TRIANGLE_STRIP");
-    }
-
-
+    utils.bloom(12, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
 
     //copy to screen
     utils.drawToScreen(context, this.shapes.quad, { ...this.materials.copyMat, exposure: 1.0 });
