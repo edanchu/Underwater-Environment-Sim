@@ -92,7 +92,7 @@ export class Test extends Component {
     this.shapes.ball.draw(context, this.uniforms, Mat4.scale(500, 500, 500), { ...this.materials.plastic, color: color(120 / 255 / 5, 178 / 255 / 5, 196 / 255 / 5, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 },)
 
     //postprocess
-    utils.bloom(12, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
+    utils.bloom(5, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
 
     //copy to screen
     utils.drawToScreen(context, this.shapes.quad, { ...this.materials.copyMat, exposure: 1.0 });

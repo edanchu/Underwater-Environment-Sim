@@ -509,7 +509,7 @@ utils.Light = class Light {
         this.attenuation = size == null ? 1 / this.radius : 1 / size;
     }
 
-    updateColor(newColor){
+    updateColor(newColor) {
         this.baseColor = newColor.copy();
         this.color = newColor.times(intensity);
         this.lightMax = Math.max(this.color[0], Math.max(this.color[1], this.color[2]));
@@ -518,7 +518,7 @@ utils.Light = class Light {
         this.attenuation = 1 / this.radius;
     }
 
-    updateIntensity(newIntensity){
+    updateIntensity(newIntensity) {
         this.intensity = newIntensity;
         this.color = this.baseColor.times(newIntensity);
         this.lightMax = Math.max(this.color[0], Math.max(this.color[1], this.color[2]));
@@ -527,7 +527,7 @@ utils.Light = class Light {
         this.attenuation = 1 / this.radius;
     }
 
-    updatePosition(newPos){
+    updatePosition(newPos) {
         this.position = newPos.copy();
     }
 }

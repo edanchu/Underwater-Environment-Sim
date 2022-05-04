@@ -11,7 +11,7 @@ const Controls_Widget = widgets.Controls_Widget =
             const rules = [".controls-widget * { font-family: monospace }",
                 ".controls-widget div { background: white }",
                 ".controls-widget table { border-collapse: collapse; display:block; overflow-x: auto; }",
-                ".controls-widget table.control-box { width: 1920px; border:0; margin:0; max-height:380px; transition:.5s; overflow-y:scroll; background:DimGray }",
+                ".controls-widget table.control-box { width:" + (options.dimensions ? options.dimensions[0] + "px" : "1920px") + "; border:0; margin:0; max-height:380px; transition:.5s; overflow-y:scroll; background:DimGray }",
                 ".controls-widget table.control-box:hover { max-height:500px }",
                 ".controls-widget table.control-box td { overflow:hidden; border:0; background:DimGray; border-radius:30px }",
                 ".controls-widget table.control-box td .control-div { background: #EEEEEE; height:338px; padding: 5px 5px 5px 30px; box-shadow: 25px 0px 60px -15px inset }",
@@ -177,11 +177,11 @@ const Code_Widget = widgets.Code_Widget =
         // See description at:
         // https://github.com/encyclopedia-of-code/tiny-graphics-js/wiki/tiny-graphics-gui.js#code_widget
         constructor(component, options = {}) {
-            const rules = [".code-widget .code-panel { margin:auto; background:white; overflow:auto; font-family:monospace; width:1060px; padding:10px; padding-bottom:40px; max-height: 500px; \
+            const rules = [".code-widget .code-panel { margin:auto; background:white; overflow:auto; font-family:monospace; width:" + (options.dimensions ? options.dimensions[0] + "px" : "1920px") + "; padding:10px; padding-bottom:40px; max-height: 500px; \
                                                       border-radius:12px; box-shadow: 20px 20px 90px 0px powderblue inset, 5px 5px 30px 0px blue inset }",
                 ".code-widget .code-display { min-width:1200px; padding:10px; white-space:pre-wrap; background:transparent }",
-                ".code-widget div.class-list { overflow-x:auto; width:1920px; border-radius:25px; margin:" +
-                " 10px; box-sizing: border-box; background: #EEEEEE; font-family:monospace; padding:18px }",
+            '.code-widget div.class-list { overflow-x:auto; width:' + (options.dimensions ? options.dimensions[0] + "px" : "1920px") + "px; border-radius:25px; margin:" +
+            " 10px; box-sizing: border-box; background: #EEEEEE; font-family:monospace; padding:18px }",
                 ".code-widget div.class-list .heading { display:inline-block; font-weight:bold }"
             ];
 
