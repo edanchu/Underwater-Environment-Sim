@@ -533,7 +533,6 @@ utils.Light = class Light {
 }
 
 utils.HDRTexture = class Texture {
-    // See description at https://github.com/encyclopedia-of-code/tiny-graphics-js/wiki/tiny-graphics.js#texture
     constructor(filename) {
         Object.assign(this, { filename });
 

@@ -469,7 +469,7 @@ const Component = tiny.Component =
             div.className = "documentation_treenode";
             // Fit the existing document content to a fixed size:
             div.style.margin = "auto";
-            div.style.width = "1920px";
+            div.style.width = options.dimensions ? options.dimensions[0] + "px" : "1920px";
 
             this.document_region = div.appendChild(document.createElement("div"));
             this.document_region.className = "documentation";
@@ -487,12 +487,12 @@ const Component = tiny.Component =
             // TODO:  One use case may have required canvas to be styled as a rule instead of as an element.  Keep an
             // eye out.
             const canvas = this.program_stuff.appendChild(document.createElement("canvas"));
-            canvas.style = `width:1920px; height:600px; background:DimGray; margin:auto; margin-bottom:-4px`;
+            canvas.style = `width:`+options.dimensions ? options.dimensions[0] + "px" : "1920px" +`; height:600px; background:DimGray; margin:auto; margin-bottom:-4px`;
 
             if (!overridden_options.show_canvas)
                 canvas.style.display = "none";
             // Use tiny-graphics-js to draw graphics to the canvas, using the given scene objects.
-            this.make_context(canvas);
+            this.make_context(canvas, color(0,0,0,1), overridden_options.dimensions);
             // Start WebGL main loop - render() will re-queue itself for continuous calls.
             this.event = window.requestAnimFrame(this.frame_advance.bind(this));
 
