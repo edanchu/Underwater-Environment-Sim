@@ -2,7 +2,6 @@ import { tiny } from './tiny-graphics.js'
 import { math } from './tiny-graphics-math.js'
 import { Quaternion, quat } from './Quaternion.js';
 import { loadHDR, rgbeToFloat } from './hdrpng.js';
-import { parseHeaders } from './parse-dds.js';
 
 const { Vector, Vector3, vec3, Mat4, vec, vec4 } = math;
 const { Shape, Component, Graphics_Card_Object } = tiny;
