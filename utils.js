@@ -498,13 +498,37 @@ utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, 
 }
 
 utils.Light = class Light {
-    constructor(position, color, intensity = 1, size = null) {
-        this.position = position;
+    constructor(position, color, intensity = 1, isDirectional = false, size = null) {
+        this.position = position.copy();
+        this.isDirectional = isDirectional;
+        this.baseColor = color.copy();
         this.color = color.times(intensity);
         this.lightMax = Math.max(this.color[0], Math.max(this.color[1], this.color[2]));
         const constant = 1.0, linear = 0.7, quad = 1.8;
         this.radius = (-linear + Math.sqrt(linear * linear - 4 * quad * (constant - (256.0 / 1.0) * this.lightMax))) / (2 * quad);
-        this.attenuation = size == null ? this.radius : 1 / size;
+        this.attenuation = size == null ? 1 / this.radius : 1 / size;
+    }
+
+    updateColor(newColor){
+        this.baseColor = newColor.copy();
+        this.color = newColor.times(intensity);
+        this.lightMax = Math.max(this.color[0], Math.max(this.color[1], this.color[2]));
+        const constant = 1.0, linear = 0.7, quad = 1.8;
+        this.radius = (-linear + Math.sqrt(linear * linear - 4 * quad * (constant - (256.0 / 1.0) * this.lightMax))) / (2 * quad);
+        this.attenuation = 1 / this.radius;
+    }
+
+    updateIntensity(newIntensity){
+        this.intensity = newIntensity;
+        this.color = this.baseColor.times(newIntensity);
+        this.lightMax = Math.max(this.color[0], Math.max(this.color[1], this.color[2]));
+        const constant = 1.0, linear = 0.7, quad = 1.8;
+        this.radius = (-linear + Math.sqrt(linear * linear - 4 * quad * (constant - (256.0 / 1.0) * this.lightMax))) / (2 * quad);
+        this.attenuation = 1 / this.radius;
+    }
+
+    updatePosition(newPos){
+        this.position = newPos.copy();
     }
 }
 
