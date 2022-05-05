@@ -2,9 +2,10 @@ import { tiny } from './tiny-graphics.js'
 import { math } from './tiny-graphics-math.js'
 import { Quaternion, quat } from './Quaternion.js';
 import { loadHDR, rgbeToFloat } from './hdrpng.js';
+import { shaders } from './shaders.js';
 
 const { Vector, Vector3, vec3, Mat4, vec, vec4 } = math;
-const { Shape, Component, Graphics_Card_Object } = tiny;
+const { Shape, Component, Material } = tiny;
 
 export const utils = {};
 
@@ -243,10 +244,48 @@ utils.BufferedTexture = class BufferedTexture {
     }
 }
 
+utils.BufferedCubemap = class BufferedCubemap {
+    // **Texture** wraps a pointer to a new texture image where
+    // it is stored in GPU memory, along with a new HTML image object.
+    // This class initially copies the image to the GPU buffers,
+    // optionally generating mip maps of it and storing them there too.
+    constructor(texture_buffer_pointer) {
+        if (!this.gpu_instances) this.gpu_instances = new Map();
+        Object.assign(this, { texture_buffer_pointer });
+        this.ready = true;
+        this.texture_buffer_pointer = texture_buffer_pointer;
+    }
+
+    copy_onto_graphics_card(context, need_initial_settings = true) {
+        // Define what this object should store in each new WebGL Context:
+        const initial_gpu_representation = { texture_buffer_pointer: undefined };
+        // Our object might need to register to multiple GPU contexts in the case of
+        // multiple drawing areas.  If this is a new GPU context for this object,
+        // copy the object to the GPU.  Otherwise, this object already has been
+        // copied over, so get a pointer to the existing instance.
+        const gpu_instance = super.copy_onto_graphics_card(context, initial_gpu_representation);
+
+        if (!gpu_instance.texture_buffer_pointer) gpu_instance.texture_buffer_pointer = this.texture_buffer_pointer;
+        return gpu_instance;
+    }
+
+    activate(context, texture_unit = 0) {
+        // activate(): Selects this Texture in GPU memory so the next shape draws using it.
+        // Optionally select a texture unit in case you're using a shader with many samplers.
+        // Terminate draw requests until the image file is actually loaded over the network:
+        if (!this.ready)
+            return;
+        //const gpu_instance = super.activate(context);
+        context.activeTexture(context["TEXTURE" + texture_unit]);
+        context.bindTexture(context.TEXTURE_CUBE_MAP, this.texture_buffer_pointer);
+    }
+}
+
 utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, screenWidth, screenHeight) {
     let gTextures = {};
     let lTextures = {};
     let pTextures = {};
+    let cTextures = {};
     let FBOs = {};
 
     if (!gl.getExtension("EXT_color_buffer_float")) {
@@ -279,13 +318,17 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     let gNormalGPU = gl.createTexture();
     gTextures.gNormal = new utils.BufferedTexture(gNormalGPU);
 
-    //bloom buffers
+    //generic postprocess
     let pGen1GPU = gl.createTexture();
     pTextures.pGen1 = new utils.BufferedTexture(pGen1GPU);
-
-    //generic postProcess
     let pGen2GPU = gl.createTexture();
     pTextures.pGen2 = new utils.BufferedTexture(pGen2GPU);
+
+    //cubemap convolution
+    let cEnvCubeGPU = gl.createTexture();
+    cTextures.cEnvCube = new utils.BufferedCubemap(cEnvCubeGPU);
+    let cIrradianceGPU = gl.createTexture();
+    cTextures.cIrradiance = new utils.BufferedCubemap(cIrradianceGPU);
 
     //shadow buffer
 
@@ -441,7 +484,42 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
         return;
     }
 
-    return [FBOs, gTextures, lTextures, pTextures, lightDepthTexture];
+    //cBuffer
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cEnvCubeGPU);
+    for (let i = 0; i < 6; i++) {
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA16F, 512, 512, 0, gl.RGBA, gl.FLOAT, null);
+    }
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cIrradianceGPU);
+    for (let i = 0; i < 6; i++) {
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA16F, 32, 32, 0, gl.RGBA, gl.FLOAT, null);
+    }
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+
+    FBOs.cBuffer = gl.createFramebuffer();
+    FBOs.cRBuffer = gl.createRenderbuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.cBuffer);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, FBOs.cRBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, 512, 512);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, FBOs.cRBuffer);
+
+    status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.log('fb status: ' + status.toString(16));
+        return;
+    }
+
+    return [FBOs, gTextures, lTextures, pTextures, cTextures, lightDepthTexture];
 }
 
 utils.bindGBuffer = function bindGBuffer(gl, gBuffer) {
@@ -497,6 +575,37 @@ utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, 
     }
 }
 
+utils.convolveCubemaps = function convolveCubemaps(context, cBuffer, cTextures, cube, HDRI) {
+    const gl = context.context;
+    const cubeMat = { shader: new shaders.CubemapShader(), texture: HDRI };
+    const convMat = { shader: new shaders.ConvolveShader(), envMap: cTextures.cEnvCube };
+    const proj = Mat4.perspective(90 * Math.PI / 180, 1, 0.1, 10);
+    const views = [
+        Mat4.look_at(vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, -1, 0)), Mat4.look_at(vec3(0, 0, 0), vec3(-1, 0, 0), vec3(0, -1, 0)),
+        Mat4.look_at(vec3(0, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1)), Mat4.look_at(vec3(0, 0, 0), vec3(0, -1, 0), vec3(0, 0, -1)),
+        Mat4.look_at(vec3(0, 0, 0), vec3(0, 0, 1), vec3(0, -1, 0)), Mat4.look_at(vec3(0, 0, 0), vec3(0, 0, -1), vec3(0, -1, 0))
+    ];
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, cBuffer);
+    gl.viewport(0, 0, 512, 512);
+    for (let i = 0; i < 6; i++) {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, cTextures.cEnvCube.texture_buffer_pointer, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        cube.draw(context, null, Mat4.identity(), { ...cubeMat, projTransform: proj, cameraInverse: views[i] });
+    }
+
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, 32, 32);
+    gl.viewport(0, 0, 32, 32);
+    for (let i = 0; i < 6; i++) {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, cTextures.cIrradiance.texture_buffer_pointer, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        cube.draw(context, null, Mat4.identity(), { ...convMat, projTransform: proj, cameraInverse: views[i] });
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+}
+
 utils.Light = class Light {
     constructor(position, color, intensity = 1, isDirectional = false, size = null) {
         this.position = position.copy();
@@ -539,7 +648,7 @@ utils.HDRTexture = class Texture {
         if (!this.gpu_instances) this.gpu_instances = new Map();     // Track which GPU contexts this object has
         // copied itself onto.
 
-        this.image = null, this.width = null, this.height = null;
+        this.image = null, this.width = null, this.height = null, this.ready = false;
         loadHDR(filename, (img, width, height) => { this.image = rgbeToFloat(img); this.ready = true; this.height = height; this.width = width; });
 
     }
