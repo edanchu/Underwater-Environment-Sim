@@ -404,7 +404,7 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normal, 1.0);
         FragAlbedo = vec4(albedo, 1.0);
-        FragSpecular = vec4(roughness, ao, 0.3, metalness);
+        FragSpecular = vec4(roughness, ao, 1.0, metalness);
     }
     
     `;
@@ -853,8 +853,8 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
       vec3 normal = normalize(texelFetch(gNormal, fragCoord, 0).xyz);
       vec4 albedo = texelFetch(gAlbedo, fragCoord, 0);
       vec4 spec = texelFetch(gSpecular, fragCoord, 0);
-      float metallic = spec.x;
-      float roughness = spec.w;
+      float metallic = spec.w;
+      float roughness = spec.x;
       float ao = spec.y;
       float ambientMult = spec.z;
 
@@ -868,10 +868,6 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
 
       FragColor = vec4(ambient, albedo.w);    
     }  
-    
-    
-    
-    
     `;
   }
 }
