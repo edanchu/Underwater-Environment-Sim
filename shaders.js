@@ -404,7 +404,7 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normal, 1.0);
         FragAlbedo = vec4(albedo, 1.0);
-        FragSpecular = vec4(roughness, ao, 0.3, metalness);
+        FragSpecular = vec4(roughness, ao, 1.0, metalness);
     }
     
     `;
@@ -479,7 +479,7 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
         FragAlbedo = vec4(albedo, 1.0);
-        FragSpecular = vec4(metallic, 1.0, ambient, roughness);
+        FragSpecular = vec4(metallic, ambient, 1.0, roughness);
     }
     
     `;
@@ -805,6 +805,9 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
     material.gTextures().gSpecular.activate(context, 9);
     context.uniform1i(gpu_addresses.gSpecular, 9);
 
+    material.cTextures().cIrradiance.activate(context, 10);
+    context.uniform1i(gpu_addresses.cIrradiance, 10);
+
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
 
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
@@ -833,11 +836,16 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
     uniform sampler2D gNormal;
     uniform sampler2D gAlbedo;
     uniform sampler2D gSpecular;
+    uniform samplerCube cIrradiance;
 
     uniform vec3 cameraCenter;
     
 
     out vec4 FragColor;
+
+    vec3 fresnelSchlick(float cosTheta, vec3 F0, float roughness){
+      return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    }  
 
     void main(){		
       ivec2 fragCoord = ivec2(gl_FragCoord.xy);
@@ -845,27 +853,28 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
       vec3 normal = normalize(texelFetch(gNormal, fragCoord, 0).xyz);
       vec4 albedo = texelFetch(gAlbedo, fragCoord, 0);
       vec4 spec = texelFetch(gSpecular, fragCoord, 0);
-      float metallic = spec.x;
-      float roughness = spec.w;
+      float metallic = spec.w;
+      float roughness = spec.x;
       float ao = spec.y;
-      float ambient = spec.z;
+      float ambientMult = spec.z;
 
-      FragColor = vec4(albedo.xyz * ao * ambient, albedo.w);    
+      vec3 F0 = vec3(0.04);
+      F0 = mix(F0, albedo.xyz, metallic);
+      vec3 kS = fresnelSchlick(max(dot(normal, position - cameraCenter), 0.0), F0, roughness);
+      vec3 kD = 1.0-kS;
+      vec3 irradiance = texture(cIrradiance, normal).xyz;
+      vec3 diffuse = irradiance * albedo.xyz;
+      vec3 ambient = (kD * diffuse) * ao;
+
+      FragColor = vec4(ambient, albedo.w);    
     }  
-    
-    
-    
-    
     `;
   }
 }
 
 shaders.CubemapShader = class CubemapShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform]
-    const PCM = P.times(C).times(M);
-    const PC = P.times(C)
-    context.uniformMatrix4fv(gpu_addresses.projectionCameraMatrix, false, Matrix.flatten_2D_to_1D((uniforms.projection_transform.times(uniforms.camera_inverse)).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.projectionCameraMatrix, false, Matrix.flatten_2D_to_1D((material.projTransform.times(material.cameraInverse)).transposed()));
 
     material.texture.activate(context, 6);
     context.uniform1i(gpu_addresses.tex, 6);
@@ -911,7 +920,80 @@ shaders.CubemapShader = class CubemapShader extends tiny.Shader {
 
     void main(){		
       vec2 uv = sampleSphericalMap(normalize(vPos));
-      FragColor = vec4(texture(tex, uv).xyz, 1.0);
+      vec3 color = texture(tex, uv).xyz;
+
+      const float gamma = 2.2;
+      vec3 mapped = vec3(1.0) - exp(-color * 1.0);
+      mapped = pow(mapped, vec3(1.0 / gamma));
+
+      FragColor = vec4(mapped, 1.0);
+    }
+    `;
+  }
+}
+
+shaders.ConvolveShader = class ConvolveShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    context.uniformMatrix4fv(gpu_addresses.projectionCameraMatrix, false, Matrix.flatten_2D_to_1D((material.projTransform.times(material.cameraInverse)).transposed()));
+
+    material.envMap.activate(context, 6);
+    context.uniform1i(gpu_addresses.envMap, 6);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+
+    out vec3 vPos;
+
+    uniform mat4 projectionCameraMatrix;
+
+    void main() { 
+      vPos = position;
+      gl_Position = projectionCameraMatrix * vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    in vec3 vPos;
+
+    out vec4 FragColor;
+
+    uniform samplerCube envMap;
+
+    const float PI = 3.14159265359;
+
+    void main(){		
+        vec3 normal = normalize(vPos);
+      
+        vec3 irradiance = vec3(0.0);
+      
+        vec3 up    = vec3(0.0, 1.0, 0.0);
+        vec3 right = normalize(cross(up, normal));
+        up         = normalize(cross(normal, right));
+
+        float sampleDelta = 0.025;
+        float nrSamples = 0.0; 
+        for(float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
+            for(float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta){
+                vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
+                vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal; 
+
+                irradiance += texture(envMap, sampleVec).rgb * cos(theta) * sin(theta);
+                nrSamples++;
+            }
+        }
+        irradiance = PI * irradiance * (1.0 / float(nrSamples));
+      
+        FragColor = vec4(irradiance, 1.0);
     }
     `;
   }
