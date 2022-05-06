@@ -22,39 +22,51 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
     material.waterDerivativeHeight.activate(context, 2);
     context.uniform1i(gpu_addresses.waterDerivativeHeight, 2);
 
-    context.uniform4fv(gpu_addresses.lightPos, uniforms.lights[0].position);
-    context.uniform4fv(gpu_addresses.lightColor, uniforms.lights[0].color);
-    context.uniform1f(gpu_addresses.lightAtt, uniforms.lights[0].attenuation);
-
-    context.uniform1f(gpu_addresses.specularity, material.specularity);
-    context.uniform1f(gpu_addresses.diffusivity, material.diffusivity);
-    context.uniform1f(gpu_addresses.ambient, material.ambient);
-    context.uniform1f(gpu_addresses.smoothness, material.smoothness);
     context.uniform1f(gpu_addresses.planeSize, material.planeSize);
   }
 
   shared_glsl_code() {
-    return `precision mediump float;
-            uniform vec4 color;
-
-            varying vec3 vertexWorldspace;
-            varying vec3 normalWorldspace;
-            varying vec2 texCoord;
-            uniform float time;
-            uniform mat4 modelTransform;
-            uniform vec3 cameraCenter;
-            varying mat3 tbn;
+    return `#version 300 es
+            precision mediump float;
     `;
   }
 
   vertex_glsl_code() {
     return this.shared_glsl_code() + `
-      attribute vec3 position;
-      attribute vec3 normal;   
-      attribute vec2 texture_coord;            
+      in vec3 position;
+      in vec3 normal;   
+      in vec2 texture_coord;      
+
       uniform mat4 projection_camera_transform;
+      uniform mat4 modelTransform;
       uniform mat4 viewMatrix;
+      uniform vec3 cameraCenter;
       uniform float planeSize;
+
+      out vec3 vertexWorldspace;
+      out vec2 texCoord;
+
+      void main() { 
+        vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
+
+        gl_Position = projection_camera_transform * vec4( p, 1.0 );
+        vertexWorldspace = p; 
+        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
+      }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+      out vec4 FragColor;
+
+      uniform sampler2D waterFlow;
+      uniform sampler2D waterDerivativeHeight;
+      uniform float time;
+      uniform vec4 color;
+      uniform vec3 cameraCenter;
+
+      in vec3 vertexWorldspace;
+      in vec2 texCoord;
 
       vec3 GerstnerWave (vec4 wave, vec3 p, inout vec3 tangent, inout vec3 binormal, float timeOffset) {
         float steepness = wave.z;
@@ -104,30 +116,6 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         return p;
       }
 
-      void main() { 
-        vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
-        vec3 tangent = vec3(1, 0, 0);
-        vec3 binormal = vec3(0, 0, 1);
-
-        p += generateWaves(p, tangent, binormal);
-        normalWorldspace = normalize(cross(binormal, tangent));
-        tbn = mat3(tangent, binormal, normalWorldspace);
-
-        gl_Position = projection_camera_transform * vec4( p, 1.0 );
-        vertexWorldspace = p; 
-        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
-      }`;
-  }
-
-  fragment_glsl_code() {
-    return this.shared_glsl_code() + `
-      uniform sampler2D waterFlow;
-      uniform sampler2D waterDerivativeHeight;
-      uniform vec4 lightPos;
-      uniform vec4 lightColor;
-      uniform float lightAtt;
-      uniform float smoothness, specularity, ambient, diffusivity;
-
       vec3 Distort (vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB) {
           float phaseOffset = flowB ? 0.5 : 0.0;
           float progress = fract(time + phaseOffset);
@@ -146,109 +134,32 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
           return dh;
       }
 
-      vec3 phong_model_lights( vec3 N, vec3 vertex_worldspace ){                                        
-        vec3 E = normalize( cameraCenter - vertex_worldspace );
-        vec3 result = vec3( 0.0 );
-        vec3 surface_to_light_vector = lightPos.xyz - lightPos.w * vertex_worldspace;                                             
-        float distance_to_light = length( surface_to_light_vector );
-
-        vec3 L = normalize( surface_to_light_vector );
-        vec3 H = normalize( L + E );
-
-        float diffuse  =      max( dot( N, L ), 0.0 );
-        float specular = pow( max( dot( N, H ), 0.0 ), smoothness );
-        float attenuation = 1.0 / (1.0 + lightAtt * distance_to_light * distance_to_light);
-        
-        vec3 light_contribution = color.xyz * lightColor.xyz * diffusivity * diffuse + lightColor.xyz * specularity * specular;
-        result += attenuation * light_contribution;
-        return result;
-      }
-
       void main() {
-        vec3 flow = texture2D(waterFlow, texCoord).xyz;
+        vec3 flow = texture(waterFlow, texCoord).xyz;
         flow.xy = flow.xy * 2.0 - 1.0;
         flow *= 0.3;
-        vec3 uvwA = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 25.0, time / 45.0, false);
-        vec3 uvwB = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 25.0, time / 45.0, true);
-        float heightScale = (flow.z * 0.25 + 0.75) * 0.4;
-        vec3 dhA = UnpackDerivativeHeight(texture2D(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
-        vec3 dhB = UnpackDerivativeHeight(texture2D(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
-        vec3 normal = normalWorldspace;//tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
+        vec3 uvwA = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
+        vec3 uvwB = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
+        float heightScale = (flow.z * 0.25 + 0.75) * 0.1;
+        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
+        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
+        mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
+        vec3 normal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
         
-        vec3 vertDirection = normalize(vertexWorldspace - cameraCenter);
-        float angle = acos(dot(vertDirection, normal));
-        float limit = mix(0.0, 0.82, 1.0);//(cameraCenter.y + 201.0)/200.0);
-        //limit = mix(limit, 0.0, clamp(length(vertexWorldspace.xz - cameraCenter.xz)/80.0, 0.0, 1.0));
-        vec4 waterColor = (color * ambient + vec4(phong_model_lights(normal, vertexWorldspace), 1.0));
-        waterColor = mix(waterColor, vec4(.09, 0.195, 0.33, 1.0), clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
-        waterColor = mix(waterColor, vec4(.09, 0.195, 0.33, 1.0), clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
+        vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
+        float angle = acos(dot(viewDir, normal));
+        float limit = mix(0.0, 0.82, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
+        // limit = mix(limit, 0.0, clamp(length(vertexWorldspace.xz - cameraCenter.xz)/80.0, 0.0, 1.0));
+        vec3 waterColor = color.xyz;
+        waterColor = mix(waterColor, vec3(.09, 0.195, 0.33)  /2.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
+        waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 2.0, clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
-        vec4 finColor = b * mix(color, vec4(1,1,1,1), angle/3.0) + (1.0 - b)*waterColor;
-        gl_FragColor = waterColor;
-        //gl_FragColor = vec4(dot(vertDirection, normal.xzy), 0, 0, 1.0);
-        //gl_FragColor = color*ambient + vec4(phong_model_lights(normal, vertexWorldspace), 1.0);
+        vec3 finColor = b * mix(color.xyz, vec3(5,5,5), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
+        
+        FragColor = vec4(finColor, 1.0);
       }`;
   }
 };
-
-class testshader extends tiny.Shader {
-  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
-    context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
-    context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
-
-    context.uniform4fv(gpu_addresses.color, material.color);
-    context.uniform4fv(gpu_addresses.specularColor, material.specularColor);
-  }
-
-  shared_glsl_code() {
-    return `#version 300 es
-    precision highp float;
-`;
-  }
-
-  vertex_glsl_code() {
-    return this.shared_glsl_code() + `
-    
-    in vec3 position;  
-    in vec3 normal;
-
-    out vec3 vPos;
-    out vec3 vNorm;
-
-    uniform mat4 projection_camera_model_transform;
-    uniform mat4 modelTransform;
-
-    void main() { 
-      gl_Position = projection_camera_model_transform * vec4( position, 1.0 );
-      vPos = (modelTransform * vec4(position, 1.0)).xyz;
-      vNorm = transpose(inverse(mat3(modelTransform)) * normal);
-
-    }`;
-  }
-
-  fragment_glsl_code() {
-    return this.shared_glsl_code() + `
-
-    layout (location = 0) out vec4 FragPosition;
-    layout (location = 1) out vec4 FragNormal;
-    layout (location = 2) out vec4 FragAlbedo;
-    layout (location = 3) out vec4 FragSpecular;
-
-    in vec3 vPos;
-    in vec3 vNorm;
-
-    uniform vec4 color;
-    uniform vec4 specularColor;
-
-    void main() {                                                   
-      FragPosition = vec4(vPos, 1.0);
-      FragNormal = vec4(vNorm, 1.0);
-      FragAlbedo = color;
-      FragSpecular = specularColor;
-    }`;
-  }
-}
 
 shaders.GeometryShader = class GeometryShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
@@ -778,8 +689,8 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         vec3 position = texelFetch(gPosition, fragCoord, 0).xyz;
         vec3 normal = normalize(texelFetch(gNormal, fragCoord, 0).xyz);
         vec4 albedo = texelFetch(gAlbedo, fragCoord, 0);
-        float metallic = texelFetch(gSpecular, fragCoord, 0).x;
-        float roughness = texelFetch(gSpecular, fragCoord, 0).w;
+        float metallic = texelFetch(gSpecular, fragCoord, 0).w;
+        float roughness = texelFetch(gSpecular, fragCoord, 0).x;
     
         FragColor = vec4(PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic), albedo.w);
     }

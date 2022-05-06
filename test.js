@@ -9,14 +9,13 @@ const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 export class Test extends Component {
   init() {
     this.shapes = {};
-    const planeSize = 2;
-    this.shapes.surfacePlane = new utils.TriangleStripPlane(planeSize, planeSize, vec3(0, 10, 0), 5);
+    const planeSize = 300;
     this.shapes.ball = new defs.Subdivision_Sphere(6);
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
     this.shapes.cube = new defs.Cube();
     this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca.obj");
-    this.shapes.plane = new utils.TriangleStripPlane(2, 2, vec3(0, 0, 0), 1);
+    this.shapes.plane = new utils.TriangleStripPlane(planeSize, planeSize, vec3(0, 0, 0), 1);
 
     this.FBOs = {};
     this.gTextures = {};
@@ -35,12 +34,25 @@ export class Test extends Component {
     this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0 };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
 
+    this.materials.water = {
+      shader: new shaders.WaterSurfaceShader(),
+      color: color(0.3, 0.7, 1, 1),
+      gTextures: () => this.gTextures,
+      waterFlow: new Texture('assets/textures/water/flow_speed_noise.png'),
+      waterDerivativeHeight: new Texture('assets/textures/water/water_derivative_height.png'),
+      planeSize: planeSize,
+      specularity: 6.8,
+      ambient: 0.3,
+      diffusivity: 0.6,
+      smoothness: 10
+    };
+
     this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
     this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
     this.materials.orca = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture("assets/meshes/Orca_WhiteDetail.png"), roughness: 0.8, metallic: 0.3, ambient: 0.3 }
 
     this.uniforms.pointLights = [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 1.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 15.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 15.0, 1)];
 
     this.HDRI = new utils.HDRTexture('/assets/textures/maps/hdr.hdr');
   }
@@ -95,7 +107,8 @@ export class Test extends Component {
     utils.prepForForwardPass(gl, this.FBOs.lBuffer, this.FBOs.gBuffer);
 
     this.uniforms.pointLights.map((x) => this.shapes.ball.draw(context, this.uniforms, Mat4.translation(x.position[0], x.position[1], x.position[2]), { ...this.materials.plastic, color: color(x.color[0] / x.lightMax, x.color[1] / x.lightMax, x.color[2] / x.lightMax, 1.0), ambient: 1, specular: 0, diffuse: 0 }), "LINE_STRIP")
-    this.shapes.ball.draw(context, this.uniforms, Mat4.scale(500, 500, 500), { ...this.materials.plastic, color: color(120 / 255 / 5, 178 / 255 / 5, 196 / 255 / 5, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 },)
+    this.shapes.plane.draw(context, this.uniforms, Mat4.translation(0, 20, 0), this.materials.water, "TRIANGLE_STRIP");
+    this.shapes.ball.draw(context, this.uniforms, Mat4.scale(500, 500, 500), { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 });
 
     //postprocess
     utils.bloom(5, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
