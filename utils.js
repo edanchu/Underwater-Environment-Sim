@@ -607,7 +607,7 @@ utils.convolveCubemaps = function convolveCubemaps(context, cBuffer, cTextures, 
 }
 
 utils.Light = class Light {
-    constructor(position, color, intensity = 1, isDirectional = false, size = null) {
+    constructor(position, color, intensity = 1, isDirectional = false, size = null, updateFunction = () => { }) {
         this.position = position.copy();
         this.isDirectional = isDirectional;
         this.baseColor = color.copy();
@@ -639,6 +639,8 @@ utils.Light = class Light {
     updatePosition(newPos) {
         this.position = newPos.copy();
     }
+
+    update() { };
 }
 
 utils.HDRTexture = class Texture {
@@ -683,3 +685,22 @@ utils.HDRTexture = class Texture {
         context.bindTexture(context.TEXTURE_2D, gpu_instance.texture_buffer_pointer);
     }
 };
+
+utils.SceneObject = class SceneObject {
+    constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES") {
+        this.shape = shape;
+        this.material = material;
+        this.transform = initTransform;
+        this.drawType = drawType;
+        this.pass = pass;
+        this.id = id;
+    }
+
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+    }
+
+    update(sceneObjects, uniforms, dt) { };
+
+    fixedUpdate(sceneObjects, uniforms, dt) { };
+}

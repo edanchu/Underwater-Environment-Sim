@@ -140,7 +140,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         flow *= 0.3;
         vec3 uvwA = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
         vec3 uvwB = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
-        float heightScale = (flow.z * 0.25 + 0.75) * 0.1;
+        float heightScale = (flow.z * 0.25 + 0.75) * 0.2;
         vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
         vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
@@ -154,7 +154,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33)  /2.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 2.0, clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
-        vec3 finColor = b * mix(color.xyz, vec3(5,5,5), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
+        vec3 finColor = b * mix(color.xyz, vec3(3,3,3), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
         
         FragColor = vec4(finColor, 1.0);
       }`;
