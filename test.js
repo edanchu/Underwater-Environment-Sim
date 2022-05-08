@@ -48,14 +48,13 @@ export class Test extends Component {
     const gl = context.context;
     utils.bindGBuffer(gl, this.FBOs.gBuffer);
 
-
     //deferred geometry
     this.sceneObjects.map((x) => { if (x.pass == "deferred") x.draw(context, this.uniforms) });
 
     //lights
     utils.bindLBufferForLights(gl, this.FBOs.lBuffer);
 
-    this.uniforms.pointLights.map((x, i) => this.shapes.lightVolume.draw(context, this.uniforms, Mat4.translation(x.position[0], x.position[1], x.position[2]).times(Mat4.scale(x.radius, x.radius, x.radius)), { ...this.materials.lightingMaterial, index: i }));
+    // this.uniforms.pointLights.map((x, i) => this.shapes.lightVolume.draw(context, this.uniforms, Mat4.translation(x.position[0], x.position[1], x.position[2]).times(Mat4.scale(x.radius, x.radius, x.radius)), { ...this.materials.lightingMaterial, index: i }));
     this.uniforms.directionalLights.map((x, i) => this.shapes.quad.draw(context, this.uniforms, Mat4.identity(), { ...this.materials.directionalLightingMaterial, index: i }, "TRIANGLE_STRIP"));
     this.shapes.quad.draw(context, this.uniforms, Mat4.identity(), this.materials.ambientMaterial, "TRIANGLE_STRIP");
 
@@ -73,9 +72,10 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.identity(), "testball"));
+    // this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.identity(), "testball"));
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP"));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
+    this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout"));
   }
 
   createShapes() {
@@ -85,7 +85,8 @@ export class Test extends Component {
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
     this.shapes.cube = new defs.Cube();
-    this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca.obj");
+    this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca/orca.obj");
+    this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
   }
 
@@ -116,7 +117,7 @@ export class Test extends Component {
 
     this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
     this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
-    this.materials.orca = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture("assets/meshes/Orca_WhiteDetail.png"), roughness: 0.8, metallic: 0.3, ambient: 0.3 }
+    this.materials.trout = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('assets/meshes/trout/ancanthode.png'), roughness: 0.9, metallic: 0.65, ambient: 1.0 };
 
   }
 

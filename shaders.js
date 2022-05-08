@@ -390,7 +390,7 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
         FragAlbedo = vec4(albedo, 1.0);
-        FragSpecular = vec4(metallic, ambient, 1.0, roughness);
+        FragSpecular = vec4(roughness, ambient, 1.0, metallic);
     }
     
     `;
@@ -536,8 +536,8 @@ shaders.PointLightShader = class PointLightShader extends tiny.Shader {
     vec3 position = texelFetch(gPosition, fragCoord, 0).xyz;
     vec3 normal = normalize(texelFetch(gNormal, fragCoord, 0).xyz);
     vec4 albedo = texelFetch(gAlbedo, fragCoord, 0);
-    float metallic = texelFetch(gSpecular, fragCoord, 0).x;
-    float roughness = texelFetch(gSpecular, fragCoord, 0).w;
+    float metallic = texelFetch(gSpecular, fragCoord, 0).w;
+    float roughness = texelFetch(gSpecular, fragCoord, 0).x;
 
     FragColor = vec4(PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic), albedo.w);    
 }  
@@ -772,7 +772,8 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
       vec3 F0 = vec3(0.04);
       F0 = mix(F0, albedo.xyz, metallic);
       vec3 kS = fresnelSchlick(max(dot(normal, position - cameraCenter), 0.0), F0, roughness);
-      vec3 kD = 1.0-kS;
+      vec3 kD = vec3(1.0) - kS;
+      kD *= 1.0 - metallic;
       vec3 irradiance = texture(cIrradiance, normal).xyz;
       vec3 diffuse = irradiance * albedo.xyz;
       vec3 ambient = (kD * diffuse) * ao;

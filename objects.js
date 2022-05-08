@@ -12,3 +12,10 @@ objects.WaterPlane = class WaterPlane extends utils.SceneObject {
         this.shape.draw(context, uniforms, Mat4.translation(uniforms.camera_transform[3][0], 20, uniforms.camera_transform[3][2]), this.material, this.drawType);
     }
 }
+
+objects.trout = class trout extends utils.SceneObject {
+    draw(context, uniforms) {
+        // this.shape.draw(context, uniforms, Mat4.identity(), { ...this.material, roughness: document.getElementById('sld2').value, metallic: document.getElementById('sld1').value }, this.drawType);
+        this.shape.draw(context, uniforms, Mat4.identity(), { ...this.material, roughness: 0.9, metallic: 0.1, ambient: 1 }, this.drawType);
+    }
+}
