@@ -392,7 +392,7 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, screenWidth, screenHeight);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -643,7 +643,7 @@ utils.Light = class Light {
     update() { };
 }
 
-utils.HDRTexture = class Texture {
+utils.HDRTexture = class HDRTexture {
     constructor(filename) {
         Object.assign(this, { filename });
 
@@ -684,7 +684,7 @@ utils.HDRTexture = class Texture {
         context.activeTexture(context["TEXTURE" + texture_unit]);
         context.bindTexture(context.TEXTURE_2D, gpu_instance.texture_buffer_pointer);
     }
-};
+}
 
 utils.SceneObject = class SceneObject {
     constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES") {

@@ -335,6 +335,7 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
     context.uniform1f(gpu_addresses.metallic, material.metallic);
     context.uniform1f(gpu_addresses.roughness, material.roughness);
     context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
   }
 
   shared_glsl_code() {
@@ -357,6 +358,7 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
     uniform mat4 projection_camera_model_transform;
     uniform mat4 modelTransform;
     uniform mat4 normalMatrix;
+    uniform float time;
 
     void main() { 
       gl_Position = projection_camera_model_transform * vec4( position, 1.0 );
@@ -389,7 +391,7 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
 
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
-        FragAlbedo = vec4(albedo, 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz, vec3(2.2)), 1.0);
         FragSpecular = vec4(roughness, ambient, 1.0, metallic);
     }
     
@@ -778,7 +780,7 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
       vec3 diffuse = irradiance * albedo.xyz;
       vec3 ambient = (kD * diffuse) * ao;
 
-      FragColor = vec4(ambient, albedo.w);    
+      FragColor = vec4(ambient, albedo.w);
     }  
     `;
   }
