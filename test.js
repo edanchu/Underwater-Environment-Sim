@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 5.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
   }
 
   render_animation(context) {
@@ -117,7 +117,7 @@ export class Test extends Component {
 
     this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
     this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
-    this.materials.trout = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
 
   }
 
