@@ -298,6 +298,8 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     //shadows buffer
     let lightDepthTextureGPU = gl.createTexture();
     let lightDepthTexture = new utils.BufferedTexture(lightDepthTextureGPU);
+    let lightColorTextureGPU = gl.createTexture();
+    let lightColorTexture = new utils.BufferedTexture(lightColorTextureGPU);
 
 
     //light buffer
@@ -338,11 +340,20 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, screenWidth, screenHeight);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, lightDepthTextureSize, lightDepthTextureSize);
+
+    gl.bindTexture(gl.TEXTURE_2D, lightColorTextureGPU);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, lightDepthTextureSize, lightDepthTextureSize);
 
     FBOs.lightDepthFramebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.lightDepthFramebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, lightDepthTextureGPU, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightColorTextureGPU, 0);
 
     let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -519,7 +530,7 @@ utils.framebufferInit = function framebufferInit(gl, lightDepthTextureSize, scre
         return;
     }
 
-    return [FBOs, gTextures, lTextures, pTextures, cTextures, lightDepthTexture];
+    return [FBOs, gTextures, lTextures, pTextures, cTextures, lightDepthTexture, lightColorTexture];
 }
 
 utils.bindGBuffer = function bindGBuffer(gl, gBuffer) {
@@ -687,17 +698,33 @@ utils.HDRTexture = class HDRTexture {
 }
 
 utils.SceneObject = class SceneObject {
-    constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES") {
+    constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES", castShadows = true, shadowMaterial = null) {
         this.shape = shape;
         this.material = material;
         this.transform = initTransform;
         this.drawType = drawType;
         this.pass = pass;
         this.id = id;
+        this.castShadows = castShadows;
+        this.shadowMaterial = (shadowMaterial != null) ? shadowMaterial : this.material;
     }
 
-    draw(context, uniforms) {
-        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+    draw(context, uniforms, materialOverride = null) {
+        if (materialOverride == null) {
+            this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+        }
+        else {
+            this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
+        }
+    }
+
+    drawShadow(context, uniforms, materialOverride = null) {
+        if (materialOverride == null) {
+            this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
+        }
+        else {
+            this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
+        }
     }
 
     update(sceneObjects, uniforms, dt) { };
