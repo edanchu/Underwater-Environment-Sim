@@ -932,7 +932,12 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         vec3 rayDir = normalize(ray);
         float stepSize = length(ray) / float(steps);
         vec3 step = rayDir * stepSize;
-        vec3 pos = cameraCenter;
+        const mat4 dither = mat4
+          (vec4(0.0f, 0.5f, 0.125f, 0.625f),
+          vec4(0.75f, 0.22f, 0.875f, 0.375f),
+          vec4(0.1875f, 0.6875f, 0.0625f, 0.5625f),
+          vec4(0.9375f, 0.4375f, 0.8125f, 0.3125f));
+        vec3 pos = cameraCenter + step * dither[int(gl_FragCoord.x)%4][int(gl_FragCoord.y)%4];
         vec3 lightDir = normalize(lightPos.xyz);
 
         vec3 fog = vec3(0.0);
@@ -960,7 +965,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         float roughness = texelFetch(gSpecular, fragCoord, 0).x;
     
         vec3 finColor = PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic);
-        finColor *= calculateVolumetricFog(position, 100);
+        finColor *= calculateVolumetricFog(position, 15);
         finColor *= calcShadow(position);
 
         FragColor = vec4(finColor, albedo.w);
