@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 25, 5, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 10.0, 1)];
   }
 
   render_animation(context) {
@@ -80,7 +80,8 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, { ...this.materials.fishShadow, proj: () => this.sunProj, view: () => this.sunView }));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, -10, 0), "ground", "deferred", "TRIANGLE_STRIP", true));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, -10, 0).times(Mat4.scale(10, 1, 10)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "cube", "deferred", "TRIANGLES", true, { ...this.materials.basicShadow, proj: () => this.sunProj, view: () => this.sunView }));
   }
 
   createShapes() {
@@ -165,7 +166,7 @@ export class Test extends Component {
 
     if (this.sunView == undefined) {
       this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), vec3(0, 0, 0), vec3(0, 1, 0));
-      this.sunProj = Mat4.perspective(Math.PI / 2, 1, 5, 100);
+      this.sunProj = Mat4.perspective(100 * Math.PI / 180, 1, 0.5, 150);
     }
 
     this.sceneObjects.map((x) => { if (x.pass == "deferred" && x.castShadows == true) x.drawShadow(context, this.uniforms) });

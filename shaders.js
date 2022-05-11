@@ -767,6 +767,8 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
 
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
   }
 
   shared_glsl_code() {
@@ -796,6 +798,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     uniform sampler2D gNormal;
     uniform sampler2D gAlbedo;
     uniform sampler2D gSpecular;
+    uniform float slider;
 
     uniform mat4 sunProjView;
     uniform sampler2D lightDepthTexture;
@@ -896,7 +899,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
             for(int y = -1; y <= 1; ++y)
             {
                 float light_depth_value = linearDepth(texture(lightDepthTexture, center + vec2(x, y) * texel_size).x); 
-                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.1 ) ? 0.8 : 0.0;
+                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.5 ) ? 0.8 : 0.0;
             }    
         }
         shadow /= 9.0;
@@ -908,15 +911,46 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
       lightSamplePos.xyz /= lightSamplePos.w; 
       lightSamplePos.xyz *= 0.5;
       lightSamplePos.xyz += 0.5;
+
       bool inRange =
         lightSamplePos.x >= 0.0 &&
         lightSamplePos.x <= 1.0 &&
         lightSamplePos.y >= 0.0 &&
         lightSamplePos.y <= 1.0;
-                                    
+     
       return inRange ? PCF_shadow(lightSamplePos.xyz) : 1.0;
     }
     
+    float mieScattering(float lDotv, float scatterAmmount){
+        float result = 1.0 - scatterAmmount * scatterAmmount;
+        result /= (4.0 * 3.1415926535 * pow(1.0 + scatterAmmount * scatterAmmount - (2.0 * scatterAmmount) * lDotv, 1.5));
+        return result;
+    }
+
+    vec3 calculateVolumetricFog(vec3 position, int steps){
+        vec3 ray = position - cameraCenter;
+        vec3 rayDir = normalize(ray);
+        float stepSize = length(ray) / float(steps);
+        vec3 step = rayDir * stepSize;
+        vec3 pos = cameraCenter;
+        vec3 lightDir = normalize(lightPos.xyz);
+
+        vec3 fog = vec3(0.0);
+
+        for (int i = 0; i < steps; i++){
+          vec4 posCameraSpace = sunProjView * vec4(pos,1.0);
+          posCameraSpace.xyz /= posCameraSpace.w;
+          posCameraSpace = posCameraSpace * 0.5 + 0.5;
+          float depthCameraView = linearDepth(texture(lightDepthTexture, posCameraSpace.xy).x);
+          if (depthCameraView >= linearDepth(posCameraSpace.z)){
+            fog += vec3(mieScattering(min(dot(-rayDir, lightDir), 0.3), 0.5)) * lightColor.xyz;
+          }
+          pos += step;
+        }
+
+        return length(fog) > 0.0 ? fog / float(steps): vec3(0.0);
+    }
+
     void main() {
         ivec2 fragCoord = ivec2(gl_FragCoord.xy);
         vec3 position = texelFetch(gPosition, fragCoord, 0).xyz;
@@ -925,7 +959,11 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         float metallic = texelFetch(gSpecular, fragCoord, 0).w;
         float roughness = texelFetch(gSpecular, fragCoord, 0).x;
     
-        FragColor = vec4(PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic) * calcShadow(position), albedo.w);
+        vec3 finColor = PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic);
+        finColor *= calculateVolumetricFog(position, 100);
+        finColor *= calcShadow(position);
+
+        FragColor = vec4(finColor, albedo.w);
     }
     
     `;
@@ -1303,7 +1341,7 @@ shaders.GBlur = class GBlur extends tiny.Shader {
 
 shaders.ShadowShaderBase = class ShadowShaderBase extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    context.uniformMatrix4fv(gpu_addresses.projViewCamera, false, Matrix.flatten_2D_to_1D(material.proj.times(material.view).times(model_transform).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.projViewCamera, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).times(model_transform).transposed()));
   }
 
   shared_glsl_code() {
