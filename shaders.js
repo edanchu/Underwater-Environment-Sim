@@ -849,8 +849,8 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     }
     
     vec3 HDR2SDR(vec3 color) {
-        color = color / (color + vec3(1.0));
-        return pow(color, vec3(1.0 / 2.2));
+        vec3 c = color / (color + vec3(1.0));
+        return pow(c, vec3(1.0 / 2.2));
     }
     
     vec3 PBR(vec3 WorldPos, vec3 Normal, vec3 albedo, float roughness, float metallic) {
@@ -916,14 +916,15 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         lightSamplePos.x >= 0.0 &&
         lightSamplePos.x <= 1.0 &&
         lightSamplePos.y >= 0.0 &&
-        lightSamplePos.y <= 1.0;
+        lightSamplePos.y <= 1.0 &&
+        lightSamplePos.z < 1.0;
      
       return inRange ? PCF_shadow(lightSamplePos.xyz) : 1.0;
     }
     
-    float mieScattering(float lDotv, float scatterAmmount){
-        float result = 1.0 - scatterAmmount * scatterAmmount;
-        result /= (4.0 * 3.1415926535 * pow(1.0 + scatterAmmount * scatterAmmount - (2.0 * scatterAmmount) * lDotv, 1.5));
+    float mieScattering(float lDotv, float g){
+        float result = 1.0 - g * g;
+        result /= (4.0 * 3.1415926535 * pow(1.0 + g * g - (2.0 * g) * lDotv, 1.5));
         return result;
     }
 
@@ -965,7 +966,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         float roughness = texelFetch(gSpecular, fragCoord, 0).x;
     
         vec3 finColor = PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic);
-        finColor *= calculateVolumetricFog(position, 15);
+        // finColor *= calculateVolumetricFog(position, 15);
         finColor *= calcShadow(position);
 
         FragColor = vec4(finColor, albedo.w);

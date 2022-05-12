@@ -20,8 +20,8 @@ export class Test extends Component {
     this.pTextures = {};
     this.lightDepthTexture = null;
 
-    this.uniforms.pointLights = [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 10.0, 1)];
+    this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
   }
 
   render_animation(context) {
