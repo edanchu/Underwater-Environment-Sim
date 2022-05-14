@@ -1389,6 +1389,9 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     context.uniformMatrix4fv(gpu_addresses.sunProjView, false, Matrix.flatten_2D_to_1D(material.sunProj().times(material.sunView()).transposed()));
     context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(P.times(C).transposed()));
 
+    material.caustics.activate(context, 7);
+    context.uniform1i(gpu_addresses.caustics, 7);
+
     material.lTextures().lAlbedo.activate(context, 8);
     context.uniform1i(gpu_addresses.lAlbedo, 8);
     material.lTextures().lDepth.activate(context, 9);
@@ -1435,6 +1438,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     uniform mat4 projViewInverse;
     uniform mat4 sunProjView;
     uniform sampler2D lightDepthTexture;
+
+    uniform sampler2D caustics;
     
     uniform vec3 cameraCenter;
     uniform float time;
@@ -1462,9 +1467,11 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
+      float caustic = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
+
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
       float sceneDepth = linearDepth(lightSamplePos.z);
-      float shadow = sceneDepth + 0.5 > lightDepth ? 0.0 : 1.0;
+      float shadow = sceneDepth + 0.5 > lightDepth ? 0.0 : 1.0 * caustic;
      
       return inRange ? shadow : 1.0;
     }
@@ -1478,7 +1485,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     vec3 calculateVolumetricFog(vec3 position, int steps){
         vec3 ray = position - cameraCenter;
         vec3 rayDir = normalize(ray);
-        float stepSize = length(ray) / float(steps);
+        float stepSize = min(length(ray), 300.0) / float(steps);
         vec3 step = rayDir * stepSize;
         const mat4 dither = mat4
           (vec4(0.0f, 0.5f, 0.125f, 0.625f),
@@ -1523,7 +1530,6 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 
         FragColor = vec4(fog, 1.0);
     }
-    
     `;
   }
 }

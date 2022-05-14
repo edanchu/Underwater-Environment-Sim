@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(0.15, 0.35, 0.46, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.15, 0.35, 0.46, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
   }
 
   render_animation(context) {
@@ -108,7 +108,7 @@ export class Test extends Component {
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
     this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0 };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
-    this.materials.volumeMat = { shader: new shaders.VolumetricShader(), lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures };
+    this.materials.volumeMat = { shader: new shaders.VolumetricShader(), lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
 
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase() };
     this.materials.fishShadow = { shader: new shaders.FishShadowShader() };
@@ -135,6 +135,7 @@ export class Test extends Component {
   createTextures() {
     this.textures = {};
     this.textures.HDRI = new utils.HDRTexture('/assets/textures/maps/hdr.hdr');
+    this.textures.caustic = new Texture('/assets/textures/misc/caust_001.png');
   }
 
   firstTimeSetup(context) {
