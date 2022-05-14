@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(0.15, 0.35, 0.46, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
   }
 
   render_animation(context) {
@@ -68,6 +68,7 @@ export class Test extends Component {
     this.sceneObjects.map((x) => { if (x.pass == "transparent") x.draw(context, this.uniforms) });
 
     //postprocess
+    this.volumePass(context);
     utils.bloom(5, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
 
     // //copy to screen
@@ -107,6 +108,7 @@ export class Test extends Component {
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
     this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0 };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
+    this.materials.volumeMat = { shader: new shaders.VolumetricShader(), lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures };
 
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase() };
     this.materials.fishShadow = { shader: new shaders.FishShadowShader() };
@@ -153,6 +155,14 @@ export class Test extends Component {
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.enable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
+  }
+
+  volumePass(context) {
+    const gl = context.context;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    this.shapes.quad.draw(context, this.uniforms, Mat4.identity(), this.materials.volumeMat, "TRIANGLE_STRIP");
   }
 
   drawSunShadows(context) {

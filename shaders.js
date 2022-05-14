@@ -1380,6 +1380,154 @@ shaders.ShadowShaderBase = class ShadowShaderBase extends tiny.Shader {
   }
 }
 
+shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform]
+    context.uniformMatrix4fv(gpu_addresses.projInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.viewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(C).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.projViewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P.times(C)).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.sunProjView, false, Matrix.flatten_2D_to_1D(material.sunProj().times(material.sunView()).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(P.times(C).transposed()));
+
+    material.lTextures().lAlbedo.activate(context, 8);
+    context.uniform1i(gpu_addresses.lAlbedo, 8);
+    material.lTextures().lDepth.activate(context, 9);
+    context.uniform1i(gpu_addresses.lDepth, 9);
+    material.lightDepthTexture().activate(context, 10);
+    context.uniform1i(gpu_addresses.lightDepthTexture, 10);
+
+    context.uniform4fv(gpu_addresses.lightPos, uniforms.directionalLights[0].position);
+    context.uniform4fv(gpu_addresses.lightColor, uniforms.directionalLights[0].color);
+    context.uniform1f(gpu_addresses.lightAtt, uniforms.directionalLights[0].attenuation);
+
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+
+    void main() { 
+      gl_Position = vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    uniform sampler2D lAlbedo;
+    uniform sampler2D lDepth;
+    uniform float slider;
+
+    uniform mat4 projInverse;
+    uniform mat4 viewInverse;
+    uniform mat4 projViewInverse;
+    uniform mat4 sunProjView;
+    uniform sampler2D lightDepthTexture;
+    
+    uniform vec3 cameraCenter;
+    uniform float time;
+    
+    uniform vec4 lightPos;
+    uniform vec4 lightColor;
+    
+    out vec4 FragColor;
+
+    float linearDepth(float val){
+        val = 2.0 * val - 1.0;
+        return (2.0 * 0.5 * 150.0) / (150.0 + 0.5 - val * (150.0 - 0.5));
+    }
+
+    float calcShadow(vec3 position){
+      vec4 lightSamplePos = sunProjView * vec4(position,1.0);
+      lightSamplePos.xyz /= lightSamplePos.w; 
+      lightSamplePos.xyz *= 0.5;
+      lightSamplePos.xyz += 0.5;
+
+      bool inRange =
+        lightSamplePos.x >= 0.0 &&
+        lightSamplePos.x <= 1.0 &&
+        lightSamplePos.y >= 0.0 &&
+        lightSamplePos.y <= 1.0 &&
+        lightSamplePos.z < 1.0;
+
+      float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
+      float sceneDepth = linearDepth(lightSamplePos.z);
+      float shadow = sceneDepth + 0.5 > lightDepth ? 0.0 : 1.0;
+     
+      return inRange ? shadow : 1.0;
+    }
+    
+    float mieScattering(float lDotv, float g){
+        float result = 1.0 - g * g;
+        result /= (4.0 * 3.1415926535 * pow(1.0 + g * g - (2.0 * g) * lDotv, 1.5));
+        return result;
+    }
+
+    vec3 calculateVolumetricFog(vec3 position, int steps){
+        vec3 ray = position - cameraCenter;
+        vec3 rayDir = normalize(ray);
+        float stepSize = length(ray) / float(steps);
+        vec3 step = rayDir * stepSize;
+        const mat4 dither = mat4
+          (vec4(0.0f, 0.5f, 0.125f, 0.625f),
+          vec4(0.75f, 0.22f, 0.875f, 0.375f),
+          vec4(0.1875f, 0.6875f, 0.0625f, 0.5625f),
+          vec4(0.9375f, 0.4375f, 0.8125f, 0.3125f));
+        vec3 pos = cameraCenter + step * dither[int(gl_FragCoord.x)%4][int(gl_FragCoord.y)%4];
+        vec3 lightDir = normalize(lightPos.xyz);
+
+        vec3 fog = vec3(0.0);
+        float totalDensity = 0.0;
+        float density = 0.025;
+        for (int i = 0; i < steps; i++){
+          
+          float stepDensity = density * stepSize;
+          float transmittance = min(exp(-totalDensity), 1.0);
+          
+          fog += min(vec3(mieScattering(dot(rayDir, -lightDir), -0.75)) * lightColor.xyz * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
+
+          totalDensity += stepDensity;
+
+          pos += step;
+        }
+
+        return fog ;/// float(steps);
+    }
+
+    vec3 worldFromDepth(float depth){
+        vec4 clipSpace = vec4((gl_FragCoord.x/1920.0) * 2.0 - 1.0, (gl_FragCoord.y/1080.0) * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+        vec4 worldspace = projViewInverse * clipSpace;
+        worldspace.xyz /= worldspace.w;
+
+        return worldspace.xyz;
+    }
+
+    void main() {
+        ivec2 fragCoord = ivec2(gl_FragCoord.xy);
+        vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
+
+        vec4 albedo = texelFetch(lAlbedo, fragCoord, 0);
+        vec3 fog = calculateVolumetricFog(position, 25);
+
+        FragColor = vec4(fog, 1.0);
+    }
+    
+    `;
+  }
+}
+
 /*
 http://www.alexandre-pestana.com/volumetric-lights/
 https://andrew-pham.blog/2019/10/03/volumetric-lighting/

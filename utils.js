@@ -572,11 +572,13 @@ utils.drawToScreen = function drawToScreen(context, quad, mat) {
 utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, FBOs, pTextures) {
     const gl = context.context;
     gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.BLEND);
 
     quad.draw(context, null, null, brightCopyMat, "TRIANGLE_STRIP");
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
+    gl.disable(gl.BLEND);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     for (let i = 0; i < iterations; ++i) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
