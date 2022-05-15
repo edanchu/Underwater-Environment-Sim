@@ -864,7 +864,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     
         vec3 L = normalize(lightPos.xyz);
         vec3 H = normalize(V + L);
-        vec3 radiance = lightColor.xyz;
+        vec3 radiance = pow(vec3(0.944, 0.984, 0.991), vec3(10.0 - WorldPos.y)) * lightColor.xyz;;
     
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
@@ -921,41 +921,6 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
      
       return inRange ? PCF_shadow(lightSamplePos.xyz) : 1.0;
     }
-    
-    float mieScattering(float lDotv, float g){
-        float result = 1.0 - g * g;
-        result /= (4.0 * 3.1415926535 * pow(1.0 + g * g - (2.0 * g) * lDotv, 1.5));
-        return result;
-    }
-
-    vec3 calculateVolumetricFog(vec3 position, int steps){
-        vec3 ray = position - cameraCenter;
-        vec3 rayDir = normalize(ray);
-        float stepSize = length(ray) / float(steps);
-        vec3 step = rayDir * stepSize;
-        const mat4 dither = mat4
-          (vec4(0.0f, 0.5f, 0.125f, 0.625f),
-          vec4(0.75f, 0.22f, 0.875f, 0.375f),
-          vec4(0.1875f, 0.6875f, 0.0625f, 0.5625f),
-          vec4(0.9375f, 0.4375f, 0.8125f, 0.3125f));
-        vec3 pos = cameraCenter + step * dither[int(gl_FragCoord.x)%4][int(gl_FragCoord.y)%4];
-        vec3 lightDir = normalize(lightPos.xyz);
-
-        vec3 fog = vec3(0.0);
-
-        for (int i = 0; i < steps; i++){
-          vec4 posCameraSpace = sunProjView * vec4(pos,1.0);
-          posCameraSpace.xyz /= posCameraSpace.w;
-          posCameraSpace = posCameraSpace * 0.5 + 0.5;
-          float depthCameraView = linearDepth(texture(lightDepthTexture, posCameraSpace.xy).x);
-          if (depthCameraView >= linearDepth(posCameraSpace.z)){
-            fog += vec3(mieScattering(min(dot(-rayDir, lightDir), 0.3), 0.5)) * lightColor.xyz;
-          }
-          pos += step;
-        }
-
-        return length(fog) > 0.0 ? fog / float(steps): vec3(0.0);
-    }
 
     void main() {
         ivec2 fragCoord = ivec2(gl_FragCoord.xy);
@@ -966,7 +931,6 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         float roughness = texelFetch(gSpecular, fragCoord, 0).x;
     
         vec3 finColor = PBR(position.xyz, normal.xyz, albedo.xyz, roughness, metallic);
-        // finColor *= calculateVolumetricFog(position, 15);
         finColor *= calcShadow(position);
 
         FragColor = vec4(finColor, albedo.w);
@@ -1234,6 +1198,8 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
       // gamma correction 
       mapped = pow(mapped, vec3(1.0 / gamma));
+
+      // mapped = mix(mapped, vec3(0, 0.226, 0.326), )
     
       FragColor = vec4(mapped, 1.0);
     }
@@ -1467,11 +1433,13 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
+      float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
       float sceneDepth = linearDepth(lightSamplePos.z);
-      float shadow = sceneDepth + 0.5 > lightDepth ? 0.0 : 1.0 * caustic;
+      float shadow = sceneDepth > lightDepth ? 0.0 : 1.0 * caustic;
      
       return inRange ? shadow : 1.0;
     }
@@ -1482,10 +1450,10 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         return result;
     }
 
-    vec3 calculateVolumetricFog(vec3 position, int steps){
+    vec4 calculateVolumetricFog(vec3 position, int steps){
         vec3 ray = position - cameraCenter;
         vec3 rayDir = normalize(ray);
-        float stepSize = min(length(ray), 300.0) / float(steps);
+        float stepSize = min(length(ray), 100.0) / float(steps);
         vec3 step = rayDir * stepSize;
         const mat4 dither = mat4
           (vec4(0.0f, 0.5f, 0.125f, 0.625f),
@@ -1502,15 +1470,16 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
           
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
+          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), vec3(10.0 - pos.y)) * lightColor.xyz;
           
-          fog += min(vec3(mieScattering(dot(rayDir, -lightDir), -0.75)) * lightColor.xyz * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
+          fog += min(vec3(mieScattering(dot(rayDir, -lightDir), -slider)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
 
           totalDensity += stepDensity;
 
           pos += step;
         }
 
-        return fog ;/// float(steps);
+        return vec4(fog, 1.0 - min(exp(-totalDensity), 1.0)) ;/// float(steps);
     }
 
     vec3 worldFromDepth(float depth){
@@ -1524,11 +1493,16 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     void main() {
         ivec2 fragCoord = ivec2(gl_FragCoord.xy);
         vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
+        vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
 
-        vec4 albedo = texelFetch(lAlbedo, fragCoord, 0);
-        vec3 fog = calculateVolumetricFog(position, 25);
+        vec4 fog = calculateVolumetricFog(position, 25);
 
-        FragColor = vec4(fog, 1.0);
+        // fog.xyz = mix(fog.xyz + albedo.xyz, vec3(0, 0.226, 0.326) / vec3(3), min(fog.w, 1.0));
+        // fog.x = albedo.x + fog.x > 0.0 ? albedo.x + fog.x : 0.0;
+        // fog.y = albedo.y + fog.y > 0.0 ? albedo.y + fog.y : 0.0;
+        // fog.z = albedo.z + fog.z > 0.0 ? albedo.z + fog.z : 0.0;
+
+        FragColor = vec4(fog.xyz, 1.0);
     }
     `;
   }
@@ -1537,4 +1511,5 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 /*
 http://www.alexandre-pestana.com/volumetric-lights/
 https://andrew-pham.blog/2019/10/03/volumetric-lighting/
+https://support.agi32.com/support/solutions/articles/22000205309-transmission-of-light-through-water
 */
