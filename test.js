@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)]//, new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(1, 1, 1, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1)/*color(0.39, 0.37, 0.25, 1)*/, 7.0, 1)];
   }
 
   render_animation(context) {
@@ -72,7 +72,7 @@ export class Test extends Component {
     utils.bloom(5, context, this.shapes.quad, this.materials.blurMat, this.materials.brightCopyMat, this.FBOs, this.pTextures);
 
     // //copy to screen
-    utils.drawToScreen(context, this.shapes.quad, { ...this.materials.copyMat, exposure: 1.0 });
+    utils.drawToScreen(context, this.uniforms, this.shapes.quad, { ...this.materials.copyMat, exposure: 1.0 });
   }
 
   createSceneObjects() {
@@ -82,7 +82,8 @@ export class Test extends Component {
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, { ...this.materials.fishShadow, proj: () => this.sunProj, view: () => this.sunView }));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, -20, 0).times(Mat4.scale(10, 1, 10)), "ground", "deferred", "TRIANGLE_STRIP", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "cube", "deferred", "TRIANGLES", true, { ...this.materials.basicShadow, proj: () => this.sunProj, view: () => this.sunView }));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, { ...this.materials.basicShadow, proj: () => this.sunProj, view: () => this.sunView }));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, { ...this.materials.basicShadow, proj: () => this.sunProj, view: () => this.sunView }));
   }
 
   createShapes() {
@@ -94,6 +95,7 @@ export class Test extends Component {
     this.shapes.cube = new defs.Cube();
     this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca/orca.obj");
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
+    this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
   }
 
@@ -106,7 +108,7 @@ export class Test extends Component {
     this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
-    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0 };
+    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0, depth: () => this.lTextures.lDepth };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
     this.materials.volumeMat = { shader: new shaders.VolumetricShader(), lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
 
@@ -129,7 +131,7 @@ export class Test extends Component {
     this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
     this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
     this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
-
+    this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
   }
 
   createTextures() {

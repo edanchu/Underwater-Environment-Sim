@@ -561,12 +561,12 @@ utils.prepForForwardPass = function prepForForwardPass(gl, lBuffer, gBuffer) {
     gl.enable(gl.DEPTH_TEST);
 }
 
-utils.drawToScreen = function drawToScreen(context, quad, mat) {
+utils.drawToScreen = function drawToScreen(context, uniforms, quad, mat) {
     const gl = context.context;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    quad.draw(context, null, null, mat, "TRIANGLE_STRIP");
+    quad.draw(context, uniforms, null, mat, "TRIANGLE_STRIP");
 }
 
 utils.bloom = function bloom(iterations, context, quad, blurMat, brightCopyMat, FBOs, pTextures) {

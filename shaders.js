@@ -148,7 +148,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));
-        float limit = mix(0.0, 0.82, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
+        float limit = mix(0.0, 0.95, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
         // limit = mix(limit, 0.0, clamp(length(vertexWorldspace.xz - cameraCenter.xz)/80.0, 0.0, 1.0));
         vec3 waterColor = color.xyz;
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33)  /2.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
@@ -1154,10 +1154,15 @@ shaders.ConvolveShader = class ConvolveShader extends tiny.Shader {
 
 shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+
+    context.uniformMatrix4fv(gpu_addresses.projViewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(uniforms.projection_transform.times(uniforms.camera_inverse)).transposed()));
+
     material.basic().activate(context, 6);
     context.uniform1i(gpu_addresses.lAlbedo, 6);
     material.post().activate(context, 7);
     context.uniform1i(gpu_addresses.postProcess, 7);
+    material.depth().activate(context, 8);
+    context.uniform1i(gpu_addresses.depth, 8);
 
     context.uniform1f(gpu_addresses.exposure, material.exposure);
   }
@@ -1183,13 +1188,22 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
     uniform sampler2D lAlbedo;
     uniform sampler2D postProcess;
+    uniform sampler2D depth;
     uniform float exposure;
 
     out vec4 FragColor;
 
+    float linearDepth(float val){
+        val = 2.0 * val - 1.0;
+        return (2.0 * 0.5 * 150.0) / (150.0 + 0.5 - val * (150.0 - 0.5));
+    }
+
+
     void main(){		
       vec3 color = texelFetch(lAlbedo, ivec2(gl_FragCoord.xy), 0).xyz;
       color += texelFetch(postProcess, ivec2(gl_FragCoord.xy), 0).xyz;
+
+      float depth = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
 
       const float gamma = 2.2;
     
@@ -1199,7 +1213,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
       // gamma correction 
       mapped = pow(mapped, vec3(1.0 / gamma));
 
-      // mapped = mix(mapped, vec3(0, 0.226, 0.326), )
+      // mapped = mix(mapped, vec3(0, 0.226, 0.326), min(linearDepth(depth) / 75.0, 1.0));
     
       FragColor = vec4(mapped, 1.0);
     }
@@ -1349,8 +1363,6 @@ shaders.ShadowShaderBase = class ShadowShaderBase extends tiny.Shader {
 shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform]
-    context.uniformMatrix4fv(gpu_addresses.projInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P).transposed()));
-    context.uniformMatrix4fv(gpu_addresses.viewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(C).transposed()));
     context.uniformMatrix4fv(gpu_addresses.projViewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P.times(C)).transposed()));
     context.uniformMatrix4fv(gpu_addresses.sunProjView, false, Matrix.flatten_2D_to_1D(material.sunProj().times(material.sunView()).transposed()));
     context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(P.times(C).transposed()));
@@ -1399,8 +1411,6 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     uniform sampler2D lDepth;
     uniform float slider;
 
-    uniform mat4 projInverse;
-    uniform mat4 viewInverse;
     uniform mat4 projViewInverse;
     uniform mat4 sunProjView;
     uniform sampler2D lightDepthTexture;
@@ -1441,7 +1451,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
       float sceneDepth = linearDepth(lightSamplePos.z);
       float shadow = sceneDepth > lightDepth ? 0.0 : 1.0 * caustic;
      
-      return inRange ? shadow : 1.0;
+      return inRange ? shadow : 0.0;
     }
     
     float mieScattering(float lDotv, float g){
