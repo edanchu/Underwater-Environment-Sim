@@ -893,13 +893,13 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         vec2 center = lightSamplePos.xy;
         float projected_depth = lightSamplePos.z;
         float shadow = 0.0;
-        float texel_size = 1.0 / 2048.0;
+        float texel_size = 1.0 / 8192.0;
         for(int x = -1; x <= 1; ++x)
         {
             for(int y = -1; y <= 1; ++y)
             {
                 float light_depth_value = linearDepth(texture(lightDepthTexture, center + vec2(x, y) * texel_size).x); 
-                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.5 ) ? 0.8 : 0.0;
+                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.03 ) ? 0.8 : 0.0;
             }    
         }
         shadow /= 9.0;
@@ -1443,8 +1443,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
-      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePos.xy * 3.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 13.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePos.xy * 13.0).x * 1.0)) - 3.8, 0.0);
       float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
@@ -1480,7 +1480,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
           
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
-          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), vec3(10.0 - pos.y)) * lightColor.xyz;
+          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(10.0 - pos.y), 0.0)) * lightColor.xyz;
           
           fog += min(vec3(mieScattering(dot(rayDir, -lightDir), -slider)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
 

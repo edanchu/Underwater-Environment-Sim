@@ -140,7 +140,7 @@ export class Test extends Component {
 
   firstTimeSetup(context) {
     const gl = context.context;
-    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 2048, gl.canvas.width, gl.canvas.height);
+    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 8192, gl.canvas.width, gl.canvas.height);
     this.FBOs = _FBOs, this.gTextures = _gTextures, this.lTextures = _lTextures, this.pTextures = _pTextures, this.cTextures = _cTextures, this.lightDepthTexture = _lightDepthTexture, this.lightColorTexture = _lightColorTexture;
 
     this.uniforms.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 1000);
@@ -173,11 +173,12 @@ export class Test extends Component {
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.viewport(0, 0, 2048, 2048);
+    gl.viewport(0, 0, 8192, 8192);
 
     if (this.sunView == undefined) {
       this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), vec3(0, 0, 0), vec3(0, 1, 0));
-      this.sunProj = Mat4.perspective(100 * Math.PI / 180, 1, 0.5, 150);
+      // this.sunProj = Mat4.perspective(100 * Math.PI / 180, 1, 0.5, 150);
+      this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
     }
 
     this.sceneObjects.map((x) => { if (x.pass == "deferred" && x.castShadows == true) x.drawShadow(context, this.uniforms) });
