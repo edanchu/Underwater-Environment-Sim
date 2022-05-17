@@ -760,7 +760,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     material.lightDepthTexture().activate(context, 10);
     context.uniform1i(gpu_addresses.lightDepthTexture, 10);
 
-    context.uniform4fv(gpu_addresses.lightPos, uniforms.directionalLights[material.index].position);
+    context.uniform4fv(gpu_addresses.lightPos, uniforms.directionalLights[material.index].direction);
     context.uniform4fv(gpu_addresses.lightColor, uniforms.directionalLights[material.index].color);
     context.uniform1f(gpu_addresses.lightAtt, uniforms.directionalLights[material.index].attenuation);
 
@@ -899,7 +899,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
             for(int y = -1; y <= 1; ++y)
             {
                 float light_depth_value = linearDepth(texture(lightDepthTexture, center + vec2(x, y) * texel_size).x); 
-                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.03 ) ? 0.8 : 0.0;
+                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.003 ) ? 0.8 : 0.0;
             }    
         }
         shadow /= 9.0;
@@ -1377,7 +1377,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     material.lightDepthTexture().activate(context, 10);
     context.uniform1i(gpu_addresses.lightDepthTexture, 10);
 
-    context.uniform4fv(gpu_addresses.lightPos, uniforms.directionalLights[0].position);
+    context.uniform4fv(gpu_addresses.lightPos, uniforms.directionalLights[0].direction);
     context.uniform4fv(gpu_addresses.lightColor, uniforms.directionalLights[0].color);
     context.uniform1f(gpu_addresses.lightAtt, uniforms.directionalLights[0].attenuation);
 
@@ -1443,8 +1443,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePos.xy * 13.0).x * 1.0)) - 3.8, 0.0);
-      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePos.xy * 13.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 25.0 + position.xz / 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 23.0 - position.xz / 30.0).x * 1.0)) - 3.8, 0.0);
       float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
@@ -1506,11 +1506,6 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
 
         vec4 fog = calculateVolumetricFog(position, 25);
-
-        // fog.xyz = mix(fog.xyz + albedo.xyz, vec3(0, 0.226, 0.326) / vec3(3), min(fog.w, 1.0));
-        // fog.x = albedo.x + fog.x > 0.0 ? albedo.x + fog.x : 0.0;
-        // fog.y = albedo.y + fog.y > 0.0 ? albedo.y + fog.y : 0.0;
-        // fog.z = albedo.z + fog.z > 0.0 ? albedo.z + fog.z : 0.0;
 
         FragColor = vec4(fog.xyz, 1.0);
     }

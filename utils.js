@@ -284,6 +284,7 @@ utils.BufferedCubemap = class BufferedCubemap {
 utils.Light = class Light {
     constructor(position, color, intensity = 1, isDirectional = false, size = null, updateFunction = () => { }) {
         this.position = position.copy();
+        this.direction = position.copy();
         this.isDirectional = isDirectional;
         this.baseColor = color.copy();
         this.color = color.times(intensity);
@@ -313,6 +314,10 @@ utils.Light = class Light {
 
     updatePosition(newPos) {
         this.position = newPos.copy();
+    }
+
+    updateDirection(newDir) {
+        this.direction = newDir;
     }
 
     update() { };

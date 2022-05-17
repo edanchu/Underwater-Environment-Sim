@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(15, 35, 15, 0.0), color(0.944, 0.984, 0.991, 1), 7.0, 1)];
   }
 
   render_animation(context) {
@@ -175,11 +175,10 @@ export class Test extends Component {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.viewport(0, 0, 8192, 8192);
 
-    if (this.sunView == undefined) {
-      this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), vec3(0, 0, 0), vec3(0, 1, 0));
-      // this.sunProj = Mat4.perspective(100 * Math.PI / 180, 1, 0.5, 150);
-      this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
-    }
+    this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], this.uniforms.camera_transform[1][3] + 35, this.uniforms.camera_transform[2][3], 0));
+    this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
+    // this.sunProj = Mat4.perspective(140 * Math.PI / 180, 1, 0.5, 150);
+    this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
 
     this.sceneObjects.map((x) => { if (x.pass == "deferred" && x.castShadows == true) x.drawShadow(context, this.uniforms) });
     gl.viewport(0, 0, context.canvas.width, context.canvas.height);
