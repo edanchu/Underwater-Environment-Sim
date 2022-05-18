@@ -378,22 +378,24 @@ utils.SceneObject = class SceneObject {
         this.shadowMaterial = (shadowMaterial != null) ? shadowMaterial : this.material;
     }
 
-    draw(context, uniforms, materialOverride = null) {
-        if (materialOverride == null) {
-            this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
-        }
-        else {
-            this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
-        }
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
     }
 
-    drawShadow(context, uniforms, materialOverride = null) {
-        if (materialOverride == null) {
-            this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
-        }
-        else {
-            this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
-        }
+    drawOverrideMaterial(context, uniforms, materialOverride) {
+        this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
+    }
+
+    drawOverrideTransform(context, uniforms, transformOverride) {
+        this.shape.draw(context, uniforms, transformOverride, this.material, this.drawType);
+    }
+
+    drawShadow(context, uniforms, materialOverride) {
+        this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
+    }
+
+    drawShadowOverrideTransform(context, uniforms, transformOverride) {
+        this.shape.draw(context, uniforms, transformOverride, this.shadowMaterial, this.drawType);
     }
 
     update(sceneObjects, uniforms, dt) { };
