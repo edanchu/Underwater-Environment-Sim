@@ -1365,6 +1365,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform]
     context.uniformMatrix4fv(gpu_addresses.projViewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P.times(C)).transposed()));
     context.uniformMatrix4fv(gpu_addresses.sunProjView, false, Matrix.flatten_2D_to_1D(material.sunProj().times(material.sunView()).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.sunProjViewOrig, false, Matrix.flatten_2D_to_1D(material.sunProj().times(material.sunViewOrig()).transposed()));
     context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(P.times(C).transposed()));
 
     material.caustics.activate(context, 7);
@@ -1413,6 +1414,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 
     uniform mat4 projViewInverse;
     uniform mat4 sunProjView;
+    uniform mat4 sunProjViewOrig;
     uniform sampler2D lightDepthTexture;
 
     uniform sampler2D caustics;
@@ -1436,6 +1438,11 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
       lightSamplePos.xyz *= 0.5;
       lightSamplePos.xyz += 0.5;
 
+      vec4 lightSamplePosCaustic = sunProjViewOrig * vec4(position,1.0);
+      lightSamplePosCaustic.xyz /= lightSamplePos.w; 
+      lightSamplePosCaustic.xyz *= 0.5;
+      lightSamplePosCaustic.xyz += 0.5;
+
       bool inRange =
         lightSamplePos.x >= 0.0 &&
         lightSamplePos.x <= 1.0 &&
@@ -1443,8 +1450,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic1 = max((1.0 / (texture(caustics, time / 25.0 + position.xz / 30.0).x * 1.0)) - 3.8, 0.0);
-      float caustic2 = max((1.0 / (texture(caustics, time / 23.0 - position.xz / 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 25.0 + lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 23.0 - lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
       float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
