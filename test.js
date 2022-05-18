@@ -68,6 +68,7 @@ export class Test extends Component {
     this.sceneObjects.map((x) => { if (x.pass == "transparent") x.draw(context, this.uniforms) });
 
     //postprocess
+    this.depthFogPass(context);
     this.volumePass(context);
     this.bloom(5, context);
 
@@ -106,9 +107,10 @@ export class Test extends Component {
     this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
-    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.lTextures.lAlbedo, post: () => this.pTextures.pGen2, exposure: 1.0, depth: () => this.lTextures.lDepth };
+    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen2, exposure: 1.0, depth: () => this.lTextures.lDepth };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
-    this.materials.volumeMat = { shader: new shaders.VolumetricShader(), lightDepthTexture: () => this.lightDepthTexture, sunViewOrig: () => this.sunViewOrig, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
+    this.materials.volumeMat = { shader: new shaders.VolumetricShader(), pGen2: () => this.pTextures.pGen2, lightDepthTexture: () => this.lightDepthTexture, sunViewOrig: () => this.sunViewOrig, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
+    this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
 
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.fishShadow = { shader: new shaders.FishShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
@@ -158,10 +160,18 @@ export class Test extends Component {
     gl.enable(gl.CULL_FACE);
   }
 
+  depthFogPass(context) {
+    const gl = context.context;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer3);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    this.shapes.quad.draw(context, this.uniforms, Mat4.identity(), this.materials.depthFogMat, "TRIANGLE_STRIP");
+  }
+
   volumePass(context) {
     const gl = context.context;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer3);
+    gl.enable(gl.BLEND);
 
     this.shapes.quad.draw(context, this.uniforms, Mat4.identity(), this.materials.volumeMat, "TRIANGLE_STRIP");
   }
@@ -176,12 +186,13 @@ export class Test extends Component {
     gl.viewport(0, 0, 8192, 8192);
 
     this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], 35, this.uniforms.camera_transform[2][3], 0));
+
     if (this.sunViewOrig == undefined) {
       this.sunViewOrig = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
+      this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
+      // this.sunProj = Mat4.perspective(140 * Math.PI / 180, 1, 0.5, 150);
     }
     this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
-    // this.sunProj = Mat4.perspective(140 * Math.PI / 180, 1, 0.5, 150);
-    this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
 
     this.sceneObjects.map((x) => { if (x.pass == "deferred" && x.castShadows == true) x.drawShadow(context, this.uniforms) });
     gl.viewport(0, 0, context.canvas.width, context.canvas.height);
@@ -221,7 +232,7 @@ export class Test extends Component {
   bloom(iterations, context) {
     const gl = context.context;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.FBOs.pBuffer1);
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.BLEND);
 
     this.shapes.quad.draw(context, null, null, this.materials.brightCopyMat, "TRIANGLE_STRIP");
@@ -289,6 +300,8 @@ export class Test extends Component {
     pTextures.pGen1 = new utils.BufferedTexture(pGen1GPU);
     let pGen2GPU = gl.createTexture();
     pTextures.pGen2 = new utils.BufferedTexture(pGen2GPU);
+    let pGen3GPU = gl.createTexture();
+    pTextures.pGen3 = new utils.BufferedTexture(pGen3GPU);
 
     //cubemap convolution
     let cEnvCubeGPU = gl.createTexture();
@@ -452,6 +465,26 @@ export class Test extends Component {
     FBOs.pBuffer2 = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer2);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGen2GPU, 0);
+
+    status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+      console.log('fb status: ' + status.toString(16));
+      return;
+    }
+
+    //pBuffer3
+
+    gl.bindTexture(gl.TEXTURE_2D, pGen3GPU);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, screenWidth, screenHeight);
+
+    FBOs.pBuffer3 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, FBOs.pBuffer3);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pGen3GPU, 0);
 
     status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {

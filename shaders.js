@@ -1371,7 +1371,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     material.caustics.activate(context, 7);
     context.uniform1i(gpu_addresses.caustics, 7);
 
-    material.lTextures().lAlbedo.activate(context, 8);
+    material.pGen2().activate(context, 8);
     context.uniform1i(gpu_addresses.lAlbedo, 8);
     material.lTextures().lDepth.activate(context, 9);
     context.uniform1i(gpu_addresses.lDepth, 9);
@@ -1515,6 +1515,86 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         vec4 fog = calculateVolumetricFog(position, 25);
 
         FragColor = vec4(fog.xyz, 1.0);
+    }
+    `;
+  }
+}
+
+shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform]
+    context.uniformMatrix4fv(gpu_addresses.projViewInverse, false, Matrix.flatten_2D_to_1D(Mat4.inverse(P.times(C)).transposed()));
+
+    material.lTextures().lAlbedo.activate(context, 8);
+    context.uniform1i(gpu_addresses.lAlbedo, 8);
+    material.lTextures().lDepth.activate(context, 9);
+    context.uniform1i(gpu_addresses.lDepth, 9);
+
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+
+    void main() { 
+      gl_Position = vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    uniform sampler2D lAlbedo;
+    uniform sampler2D lDepth;
+    uniform float slider;
+
+    uniform mat4 projViewInverse;
+    
+    uniform vec3 cameraCenter;
+    uniform float time;
+    
+    out vec4 FragColor;
+
+    float linearDepth(float val){
+        val = 2.0 * val - 1.0;
+        return (2.0 * 0.5 * 150.0) / (150.0 + 0.5 - val * (150.0 - 0.5));
+    }
+    
+    float mieScattering(float lDotv, float g){
+        float result = 1.0 - g * g;
+        result /= (4.0 * 3.1415926535 * pow(1.0 + g * g - (2.0 * g) * lDotv, 1.5));
+        return result;
+    }
+
+    vec3 worldFromDepth(float depth){
+        vec4 clipSpace = vec4((gl_FragCoord.x/1920.0) * 2.0 - 1.0, (gl_FragCoord.y/1080.0) * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+        vec4 worldspace = projViewInverse * clipSpace;
+        worldspace.xyz /= worldspace.w;
+
+        return worldspace.xyz;
+    }
+
+    void main() {
+        ivec2 fragCoord = ivec2(gl_FragCoord.xy);
+        vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
+        vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
+
+        float viewDist = 300.0;
+        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)  /2.0, clamp(length(position - cameraCenter) / viewDist, 0.0, 1.0));
+
+        FragColor = vec4(fog, 1.0);
     }
     `;
   }
