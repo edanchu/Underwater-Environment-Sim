@@ -81,7 +81,7 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, -50, 0).times(Mat4.scale(10, 1, 10)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.sand, Mat4.translation(0, -50, 0).times(Mat4.scale(10, 1, 10)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, this.materials.basicShadow));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
   }
@@ -128,8 +128,7 @@ export class Test extends Component {
       smoothness: 10
     };
 
-    this.materials.brick = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/brick/red_bricks_04_diff_2k.jpg"), texARM: new Texture("assets/textures/brick/red_bricks_04_arm_2k.jpg"), texNormal: new Texture("assets/textures/brick/red_bricks_04_nor_gl_2k.png") }
-    this.materials.marble = { shader: new shaders.GeometryShaderTextured(), texAlbedo: new Texture("assets/textures/marble/BlackMarble_DIF.png"), texRoughness: new Texture("assets/textures/marble/BlackMarble_RGH.png"), texAO: new Texture("assets/textures/marble/BlackMarble_AO.png"), texNormal: new Texture("assets/textures/marble/BlackMarble_NRM.png"), texMetalness: new Texture("assets/textures/marble/BlackMarble_MTL.png") }
+    this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
     this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
   }

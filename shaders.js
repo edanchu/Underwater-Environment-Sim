@@ -230,6 +230,9 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
     context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
     context.uniformMatrix4fv(gpu_addresses.normalMatrix, false, Matrix.flatten_2D_to_1D(Mat4.inverse(model_transform)));
 
+    context.uniform1f(gpu_addresses.textureScale, material.textureScale);
+    context.uniform1f(gpu_addresses.ambientScale, material.ambientScale);
+
     material.texAlbedo.activate(context, 1);
     context.uniform1i(gpu_addresses.texAlbedo, 1);
     material.texNormal.activate(context, 2);
@@ -282,6 +285,9 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
     uniform sampler2D texNormal;
     uniform sampler2D texARM;
 
+    uniform float textureScale;
+    uniform float ambientScale;
+
     uniform vec3 cameraCenter;
 
     mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv) {
@@ -303,9 +309,9 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
     }
 
     void main() {
-        vec3 albedo = pow(texture(texAlbedo, vUV).rgb, vec3(2.2));
-        vec3 normal = texture(texNormal, vUV).xyz;
-        vec3 arm = texture(texARM, vUV).xyz;
+        vec3 albedo = pow(texture(texAlbedo, vUV * textureScale).rgb, vec3(2.2));
+        vec3 normal = texture(texNormal, vUV * textureScale).xyz;
+        vec3 arm = texture(texARM, vUV * textureScale).xyz;
         float roughness = arm.y;
         float metalness = arm.z;
         float ao = arm.x;
@@ -314,8 +320,8 @@ shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shade
 
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normal, 1.0);
-        FragAlbedo = vec4(albedo, 1.0);
-        FragSpecular = vec4(roughness, ao, 1.0, metalness);
+        FragAlbedo = vec4(pow(albedo, vec3(2.2)), 1.0);
+        FragSpecular = vec4(roughness, ao * ambientScale, 1.0, metalness);
     }
     
     `;
