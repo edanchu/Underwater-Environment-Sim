@@ -1483,7 +1483,9 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 
       float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
       float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
-      float caustic = min(caustic1, caustic2);
+      float caustic = max(min(caustic1, caustic2), 0.0);
+      // if (position.y < -10.0)
+      //   caustic = 1.0;
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
       float sceneDepth = linearDepth(lightSamplePos.z);
@@ -1513,13 +1515,13 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 
         vec3 fog = vec3(0.0);
         float totalDensity = 0.0;
-        float density = 0.025;
+        float density = 0.035;
         for (int i = 0; i < steps; i++){
           
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
           vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(20.0 - pos.y), 0.0) + 10.0) * lightColor.xyz;
-          float gFactor = mix(-slider, -1.0, clamp(abs(pos.y)/20.0, 0.0, 1.0));
+          float gFactor = mix(-slider, -1.0, clamp(abs(pos.y)/80.0, 0.0, 1.0));
           if (pos.y > 20.0) gFactor = -1.0;
           fog += min(vec3(mieScattering(dot(rayDir, -lightDir), gFactor)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
 

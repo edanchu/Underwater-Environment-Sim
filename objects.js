@@ -22,7 +22,7 @@ objects.trout = class trout extends utils.SceneObject {
 }
 
 objects.boidsController = class boidsController extends utils.SceneObject {
-    constructor(object, id, numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-45, 45], [-75, 20], [-45, 45]]) {
+    constructor(object, id, numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-75, 20], [-75, 75]]) {
         super(object.shape, object.material, Mat4.identity(), id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
 
         this.boundingBox = boundingBox;
@@ -30,7 +30,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.numBoids = numBoids;
 
         this.boids = [];
-        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 1, (Math.random() - 0.5) * 5);
+        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5);
         for (let i = 0; i < numBoids; i++) {
             const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
             this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));
@@ -56,13 +56,17 @@ objects.boidsController = class boidsController extends utils.SceneObject {
             const desired = x.v.normalized();
             const axis = base.cross(desired);
             const angle = Math.acos(base.dot(desired));
-            this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis)));
+            this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
         })
     }
 
     drawShadow(context, uniforms) {
         this.boids.map((x) => {
-            this.boidsObject.drawShadowOverrideTransform(context, uniforms, Mat4.translation(...x.pos));
+            const base = vec3(-1, 0, 0);
+            const desired = x.v.normalized();
+            const axis = base.cross(desired);
+            const angle = Math.acos(base.dot(desired));
+            this.boidsObject.drawShadowOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
         })
     }
 
@@ -121,7 +125,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
             else if (Math.abs(x.pos[2] - this.boundingBox[2][0]) < minDist)
                 zFactor = 1;
 
-            x.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, xFactor * avoidanceForce));
+            x.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, zFactor * avoidanceForce));
         })
     }
 }
