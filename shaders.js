@@ -1481,8 +1481,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
-      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
       float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
