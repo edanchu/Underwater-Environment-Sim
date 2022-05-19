@@ -403,3 +403,14 @@ utils.SceneObject = class SceneObject {
     fixedUpdate(sceneObjects, uniforms, dt) { };
 
 }
+
+utils.Boid = class Boid {
+    constructor(position, velocity) {
+        this.pos = position.copy();
+        this.v = velocity.copy();
+    }
+
+    update(dt) {
+        this.pos.add_by(this.v.times(dt));
+    }
+}

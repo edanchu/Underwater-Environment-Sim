@@ -40,7 +40,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.centerForce(5);
         this.separateForce(3, 10);
         this.alignForce(3);
-        this.limitVelocity(50);
+        this.limitVelocity(10);
         this.avoidWalls(500, 10);
 
         this.boids.map((x) => {
