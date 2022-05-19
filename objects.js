@@ -22,48 +22,31 @@ objects.trout = class trout extends utils.SceneObject {
 }
 
 objects.boidsController = class boidsController extends utils.SceneObject {
-    constructor(object, id, numBoids = 10, boundingBox = vec3(150, 80, 150)) {
+    constructor(object, id, numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-45, 45], [-75, 20], [-45, 45]]) {
         super(object.shape, object.material, Mat4.identity(), id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
 
-        this.boundingBox = boundingBox.copy();
+        this.boundingBox = boundingBox;
         this.boidsObject = object;
         this.numBoids = numBoids;
 
         this.boids = [];
+        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
         for (let i = 0; i < numBoids; i++) {
-            this.boids.push(new Particle(3, vec3((Math.random() - 0.5) * this.boundingBox[0] / 10.0, (Math.random() - 0.5) * this.boundingBox[1] / 10.0, (Math.random() - 0.5) * this.boundingBox[2] / 10.0), "symplectic", false, vec3((Math.random() - 0.5) * 5, 5 * (Math.random() - 0.5), 5 * (Math.random() - 0.5))));
+            const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
+            this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));
         }
     }
 
     update(sceneObjects, uniforms, dt) {
 
-        this.centerForce(5);
-        this.separateForce(3, 10);
-        this.alignForce(3);
+        this.centerForce(0.5);
+        this.separateForce(0.3, 10);
+        this.alignForce(0.2);
         this.limitVelocity(10);
-        this.avoidWalls(500, 10);
+        this.avoidWalls(15.0, 10);
 
         this.boids.map((x) => {
             x.update(dt);
-
-            if (x.pos[0] > this.boundingBox[0] / 2) {
-                x.setPosition(vec3(-this.boundingBox[0] / 2, x.pos[1], x.pos[2]));
-            }
-            else if (x.pos[0] < -this.boundingBox[0] / 2) {
-                x.setPosition(vec3(this.boundingBox[0] / 2, x.pos[1], x.pos[2]));
-            }
-            if (x.pos[1] > this.boundingBox[1] / 2) {
-                x.setPosition(vec3(x.pos[0], -this.boundingBox[1] / 2, x.pos[2]));
-            }
-            else if (x.pos[1] < -this.boundingBox[1] / 2) {
-                x.setPosition(vec3(x.pos[0], this.boundingBox[1] / 2, x.pos[2]));
-            }
-            if (x.pos[2] > this.boundingBox[2] / 2) {
-                x.setPosition(vec3(x.pos[0], x.pos[1], -this.boundingBox[2] / 2));
-            }
-            else if (x.pos[2] < -this.boundingBox[2] / 2) {
-                x.setPosition(vec3(x.pos[0], x.pos[1], this.boundingBox[2] / 2));
-            }
         })
     }
 
@@ -125,17 +108,17 @@ objects.boidsController = class boidsController extends utils.SceneObject {
     avoidWalls(avoidanceForce, minDist) {
         this.boids.map((x) => {
             let xFactor = 0, yFactor = 0, zFactor = 0;
-            if (Math.abs(x.pos[0] - (this.boundingBox[0] / 2)) < minDist)
+            if (Math.abs(x.pos[0] - this.boundingBox[0][1]) < minDist)
                 xFactor = -1;
-            else if (Math.abs(x.pos[0] - (-this.boundingBox[0] / 2)) < minDist)
+            else if (Math.abs(x.pos[0] - this.boundingBox[0][0]) < minDist)
                 xFactor = 1;
-            if (Math.abs(x.pos[1] - (this.boundingBox[1] / 2)) < minDist)
+            if (Math.abs(x.pos[1] - this.boundingBox[1][1]) < minDist)
                 yFactor = -1;
-            else if (Math.abs(x.pos[1] - (-this.boundingBox[1] / 2)) < minDist)
+            else if (Math.abs(x.pos[1] - this.boundingBox[1][0]) < minDist)
                 yFactor = 1;
-            if (Math.abs(x.pos[2] - (this.boundingBox[2] / 2)) < minDist)
+            if (Math.abs(x.pos[2] - this.boundingBox[2][1]) < minDist)
                 zFactor = -1;
-            else if (Math.abs(x.pos[2] - (-this.boundingBox[2] / 2)) < minDist)
+            else if (Math.abs(x.pos[2] - this.boundingBox[2][0]) < minDist)
                 zFactor = 1;
 
             x.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, xFactor * avoidanceForce));

@@ -86,10 +86,38 @@ export class Test extends Component {
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 50));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 50));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 50));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 50));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
   }
 
   createShapes() {
