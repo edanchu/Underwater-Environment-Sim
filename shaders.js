@@ -870,7 +870,8 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     
         vec3 L = normalize(lightPos.xyz);
         vec3 H = normalize(V + L);
-        vec3 radiance = pow(vec3(0.944, 0.984, 0.991), vec3(10.0 - WorldPos.y)) * lightColor.xyz;;
+        const float viewDist = 300.0 / 2.0;
+        vec3 radiance = mix(lightColor.xyz, vec3(0, 0, 0), clamp(length(WorldPos - cameraCenter) / viewDist, 0.0, 1.0));;
     
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
@@ -1456,8 +1457,8 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
 
-      float caustic1 = max((1.0 / (texture(caustics, time / 25.0 + lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
-      float caustic2 = max((1.0 / (texture(caustics, time / 23.0 - lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
+      float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePosCaustic.xy * 30.0).x * 1.0)) - 3.8, 0.0);
       float caustic = min(caustic1, caustic2);
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
@@ -1493,9 +1494,10 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
           
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
-          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(10.0 - pos.y), 0.0)) * lightColor.xyz;
-          
-          fog += min(vec3(mieScattering(dot(rayDir, -lightDir), -slider)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
+          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(20.0 - pos.y), 0.0) + 10.0) * lightColor.xyz;
+          float gFactor = mix(-slider, -1.0, clamp(abs(pos.y)/20.0, 0.0, 1.0));
+          if (pos.y > 20.0) gFactor = -1.0;
+          fog += min(vec3(mieScattering(dot(rayDir, -lightDir), gFactor)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
 
           totalDensity += stepDensity;
 
