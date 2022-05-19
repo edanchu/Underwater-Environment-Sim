@@ -30,7 +30,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.numBoids = numBoids;
 
         this.boids = [];
-        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
+        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 1, (Math.random() - 0.5) * 5);
         for (let i = 0; i < numBoids; i++) {
             const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
             this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));

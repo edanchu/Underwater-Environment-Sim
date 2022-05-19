@@ -1236,7 +1236,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
       //hsv tonemapping
       color = rgb2hsv(color);
-      color.y *= 1.6;
+      color.y *= 1.4;
       color.z *= 1.6;
       color = hsv2rgb(color);
     
