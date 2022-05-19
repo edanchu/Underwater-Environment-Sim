@@ -129,7 +129,7 @@ export class Test extends Component {
     };
 
     this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
-    this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/CoralTrout.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
   }
 

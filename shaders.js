@@ -1172,6 +1172,8 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
     context.uniform1i(gpu_addresses.depth, 8);
 
     context.uniform1f(gpu_addresses.exposure, material.exposure);
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById('sld3').value);
   }
 
   shared_glsl_code() {
@@ -1197,6 +1199,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
     uniform sampler2D postProcess;
     uniform sampler2D depth;
     uniform float exposure;
+    uniform float slider;
 
     out vec4 FragColor;
 
@@ -1205,6 +1208,23 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
         return (2.0 * 0.5 * 150.0) / (150.0 + 0.5 - val * (150.0 - 0.5));
     }
 
+    // from https://newbedev.com/from-rgb-to-hsv-in-opengl-glsl
+    vec3 rgb2hsv(vec3 c){
+      vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+      vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+      vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+      float d = q.x - min(q.w, q.y);
+      float e = 1.0e-10;
+      return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+
+    // from https://newbedev.com/from-rgb-to-hsv-in-opengl-glsl
+    vec3 hsv2rgb(vec3 c){
+        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
 
     void main(){		
       vec3 color = texelFetch(lAlbedo, ivec2(gl_FragCoord.xy), 0).xyz;
@@ -1213,14 +1233,18 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
       float depth = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
 
       const float gamma = 2.2;
+
+      //hsv tonemapping
+      color = rgb2hsv(color);
+      color.y *= 1.6;
+      color.z *= 1.6;
+      color = hsv2rgb(color);
     
       // exposure tone mapping
       vec3 mapped = vec3(1.0) - exp(-color * exposure);
 
       // gamma correction 
       mapped = pow(mapped, vec3(1.0 / gamma));
-
-      // mapped = mix(mapped, vec3(0, 0.226, 0.326), min(linearDepth(depth) / 75.0, 1.0));
     
       FragColor = vec4(mapped, 1.0);
     }
