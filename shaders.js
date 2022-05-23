@@ -1237,7 +1237,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
       //hsv tonemapping
       color = rgb2hsv(color);
       color.y *= 1.4;
-      color.z *= 1.6;
+      color.z *= 1.4;
       color = hsv2rgb(color);
     
       // exposure tone mapping
@@ -1484,8 +1484,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
       float caustic1 = max((1.0 / (texture(caustics, time / 15.0 + lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
       float caustic2 = max((1.0 / (texture(caustics, time / 13.0 - lightSamplePosCaustic.xy * 25.0).x * 1.0)) - 3.8, 0.0);
       float caustic = max(min(caustic1, caustic2), 0.0);
-      // if (position.y < -10.0)
-      //   caustic = 1.0;
+      caustic = mix(caustic, 1.0, clamp(abs(position.y/ 60.0), 0.0, 1.0));
 
       float lightDepth = linearDepth(texture(lightDepthTexture, lightSamplePos.xy).x);
       float sceneDepth = linearDepth(lightSamplePos.z);
@@ -1503,7 +1502,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
     vec4 calculateVolumetricFog(vec3 position, int steps){
         vec3 ray = position - cameraCenter;
         vec3 rayDir = normalize(ray);
-        float stepSize = min(length(ray), 100.0) / float(steps);
+        float stepSize = min(length(ray), 150.0) / float(steps);
         vec3 step = rayDir * stepSize;
         const mat4 dither = mat4
           (vec4(0.0f, 0.5f, 0.125f, 0.625f),
@@ -1515,7 +1514,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
 
         vec3 fog = vec3(0.0);
         float totalDensity = 0.0;
-        float density = 0.035;
+        float density = 0.025;
         for (int i = 0; i < steps; i++){
           
           float stepDensity = density * stepSize;

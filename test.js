@@ -80,77 +80,35 @@ export class Test extends Component {
     this.sceneObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
-    // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, -80, 0).times(Mat4.scale(10, 1, 10)), "ground", "deferred", "TRIANGLE_STRIP", false, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
     // this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, this.materials.basicShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids5", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids6", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids7", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids5", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids6", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids7", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 10, vec3(30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids2", 10, vec3(-30, 0, 0)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids3", 10, vec3(0, 0, -30)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids4", 10, vec3(0, 0, 30)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
   }
 
   createShapes() {
@@ -174,7 +132,7 @@ export class Test extends Component {
     this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
-    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen2, exposure: 1.0, depth: () => this.lTextures.lDepth };
+    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 2.0, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
     this.materials.volumeMat = { shader: new shaders.VolumetricShader(), pGen2: () => this.pTextures.pGen2, lightDepthTexture: () => this.lightDepthTexture, sunViewOrig: () => this.sunViewOrig, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
     this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
@@ -196,7 +154,7 @@ export class Test extends Component {
     };
 
     this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
-    this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
   }
 
@@ -319,7 +277,7 @@ export class Test extends Component {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this.shapes.quad.draw(context, this.uniforms, null, { ...this.materials.copyMat, exposure: 1.0 }, "TRIANGLE_STRIP");
+    this.shapes.quad.draw(context, this.uniforms, null, this.materials.copyMat, "TRIANGLE_STRIP");
   }
 
   framebufferInit(gl, lightDepthTextureSize, screenWidth, screenHeight) {

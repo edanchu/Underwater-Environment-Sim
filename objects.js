@@ -43,6 +43,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.separateForce(0.3, 10);
         this.alignForce(0.2);
         this.limitVelocity(10);
+        this.avoidCamera(15, 6, uniforms);
         this.avoidWalls(15.0, 10);
 
         this.boids.map((x) => {
@@ -84,7 +85,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
             this.boids.map((y, j) => {
                 if (i !== j) {
                     const distance = x.pos.minus(y.pos);
-                    if ((distance[0] !== 0 || distance[1] !== 0 || distance[2] !== 0) && distance.norm() <= minDist)
+                    if (distance.norm() <= minDist)
                         x.addForce(distance.times(separationForce));
                 }
             })
@@ -99,6 +100,15 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         vAvg.scale_by(1 / this.numBoids);
 
         this.boids.map((x) => x.addForce(vAvg.times(alignmentForce)));
+    }
+
+    avoidCamera(alignmentForce, minDist, uniforms) {
+
+        this.boids.map((x) => {
+            const cameraDist = x.pos.minus(vec3(uniforms.camera_transform[0][3], uniforms.camera_transform[1][3], uniforms.camera_transform[2][3]));
+            if (cameraDist.norm() < minDist)
+                x.addForce(cameraDist.times(alignmentForce));
+        });
     }
 
     limitVelocity(maxV) {
