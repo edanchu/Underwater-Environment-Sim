@@ -1519,7 +1519,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
           
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
-          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(20.0 - pos.y), 0.0) + 10.0) * lightColor.xyz;
+          vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(20.0 - pos.y), 0.0) + 15.0) * lightColor.xyz;
           float gFactor = mix(-slider, -1.0, clamp(abs(pos.y)/80.0, 0.0, 1.0));
           if (pos.y > 20.0) gFactor = -1.0;
           fog += min(vec3(mieScattering(dot(rayDir, -lightDir), gFactor)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));

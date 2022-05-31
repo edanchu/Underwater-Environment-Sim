@@ -43,7 +43,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.separateForce(0.3, 10);
         this.alignForce(0.2);
         this.limitVelocity(10);
-        this.avoidCamera(15, 6, uniforms);
+        this.avoidCamera(25, 6, uniforms);
         this.avoidWalls(15.0, 10);
 
         this.boids.map((x) => {

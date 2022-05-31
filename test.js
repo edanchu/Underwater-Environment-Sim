@@ -21,7 +21,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 7.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
   }
 
   render_animation(context) {
@@ -65,7 +65,6 @@ export class Test extends Component {
     //forward pass
     this.prepForForwardPass(gl, this.FBOs.lBuffer, this.FBOs.gBuffer);
     this.sceneObjects.map((x) => { if (x.pass == "forward") x.draw(context, this.uniforms) });
-    this.sceneObjects.map((x) => { if (x.pass == "transparent") x.draw(context, this.uniforms) });
 
     //postprocess
     this.depthFogPass(context);
@@ -183,6 +182,8 @@ export class Test extends Component {
     gl.enable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
   }
+
+  //engine stuff
 
   depthFogPass(context) {
     const gl = context.context;
