@@ -10,198 +10,209 @@ export const shaders = {};
 // This shader handles updating the normal information of the particle to allow
 // us to render the water:
 shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
+    // The material will hold information about the click and whatnot.
+    update_GPU(context, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activateTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
 
-  // The material will hold information about the click and whatnot.
-  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    // Map the current particle state buffer:
-    material.particleStateBuffer.activate(context, 1);
-    context.uniform1i(gpu_addresses.particles, 1);
+        // Update particle information:
+        context.uniform1f(gpu_addresses.dimx, material.dimx);
+        context.uniform1f(gpu_addresses.dimy, material.dimy);
+    }
 
-    // Update particle information:
-    context.uniform2fv(gpu_addresses.dim, material.dim);
-  }
-
-  shared_glsl_code() {
-    return `#version 300 es
+    shared_glsl_code() {
+        return `
+            #version 300 es
             precision mediump float;
-    `;
-  }
+        `;
+    }
 
-  vertex_glsl_code() {
-    return this.shared_glsl_code() + `
-      // The buffer index:
-      varying vec2 particle_coord;
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            // The buffer index:
+            varying vec2 particle_coord;
 
-      void main() {
-        // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-        particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-        gl_Position    = vec4(gl_Vertex.xyz, 1.0);
-      }
-    `;
-  }
+            void main() {
+                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
+                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
+                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+            }
+        `;
+    }
 
-  fragment_glsl_code() {
-    return this.shared_glsl_code() + `
-      const float ATTENUATION_FACTOR = 0.995
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            const float ATTENUATION_FACTOR = 0.995
 
-      uniform sampler2D particles;
+            uniform sampler2D particles;
 
-      // The dimensions of a column of water: 
-      uniform vec2 dim;
+            // The dimensions of a column of water: 
+            uniform float dimx;
+            uniform float dimy;
 
-      varying vec2 particle_coord;
+            varying vec2 particle_coord;
 
-      void main() {
-        const vec4 particle = texture2D(particles, particle_coord);
+            void main() {
+                const vec2 dim = vec2(dimx, dimy);
 
-        const vec3 dx = vec3(dim.x, texture2D(particles,
-          vec2(particle_coord.x + dim.x, particle_coord.y)).r - particle.r, 0.0);
-        const vec3 dy = vec3(0.0, texture2D(particles,
-          vec2(particle_coord.x, particle_coord.y + dim.y)).r - particle.r, dim.y);
+                const vec4 particle = texture2D(particles, particle_coord);
 
-        const vec2 normal = normalize(cross(dy, dx)).xz;
+                const vec3 dx = vec3(dim.x, texture2D(particles,
+                    vec2(particle_coord.x + dim.x, particle_coord.y)).r - particle.r, 0.0);
+                const vec3 dy = vec3(0.0, texture2D(particles,
+                    vec2(particle_coord.x, particle_coord.y + dim.y)).r - particle.r, dim.y);
 
-        gl_FragColor = vec4(particle.rg, normal);
-      }
-    `;
-  }
+                const vec2 normal = normalize(cross(dy, dx)).xz;
+
+                gl_FragColor = vec4(particle.rg, normal);
+            }
+        `;
+    }
 }
 
 // Given the current particle buffer, this shader updates the values:
 shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
+    update_GPU(context, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activateTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
 
-  // The material will hold information about the click and whatnot.
-  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    // Map the current particle state buffer:
-    material.particleStateBuffer.activate(context, 1);
-    context.uniform1i(gpu_addresses.particles, 1);
+        // Update particle information:
+        context.uniform1f(gpu_addresses.dimx, material.dimx);
+        context.uniform1f(gpu_addresses.dimy, material.dimy);
+    }
 
-    // Update particle information:
-    context.uniform2fv(gpu_addresses.dim, material.dim);
-  }
-
-  shared_glsl_code() {
-    return `#version 300 es
+    shared_glsl_code() {
+        return `
+            #version 300 es
             precision mediump float;
-    `;
-  }
+        `;
+    }
 
-  vertex_glsl_code() {
-    return this.shared_glsl_code() + `
-      // The buffer index:
-      varying vec2 particle_coord;
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            // The buffer index:
+            varying vec2 particle_coord;
 
-      void main() {
-        // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-        particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-        gl_Position    = vec4(gl_Vertex.xyz, 1.0);
-      }
-    `;
-  }
+            void main() {
+                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
+                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
+                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+            }
+        `;
+    }
 
-  fragment_glsl_code() {
-    return this.shared_glsl_code() + `
-      const float ATTENUATION_FACTOR = 0.995
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            const float ATTENUATION_FACTOR = 0.995
 
-      uniform sampler2D particles;
+            uniform sampler2D particles;
 
-      // The dimensions of a column of water: 
-      uniform vec2 dim;
+            // The dimensions of a column of water: 
+            uniform float dimx;
+            uniform float dimy;
 
-      varying vec2 particle_coord;
+            varying vec2 particle_coord;
 
-      void main() {
-        // We need to check the height of neighboring particles:
-        const vec2 dx = vec2(dim.x, 0.0);
-        const vec2 dy = vec2(0.0, dim.y);
+            void main() {
+                const vec2 dim = vec2(dimx, dimy);
 
-        // Sample neighborhood:
-        const float average_height = (
-          texture2D(texture, coord - dx).r + // pos.y
-          texture2D(texture, coord - dy).r +
-          texture2D(texture, coord + dx).r +
-          texture2D(texture, coord + dy).r
-        ) * 0.25;
+                // We need to check the height of neighboring particles:
+                const vec2 dx = vec2(dim.x, 0.0);
+                const vec2 dy = vec2(0.0, dim.y);
 
-        // Get the particle:
-        const vec4 particle = texture2D(particles, particle_coord);
+                // Sample neighborhood:
+                const float average_height = (
+                    texture2D(texture, coord - dx).r + // pos.y
+                    texture2D(texture, coord - dy).r +
+                    texture2D(texture, coord + dx).r +
+                    texture2D(texture, coord + dy).r
+                ) * 0.25;
 
-        // We want to change velocity to move towards this average height:
-        const float velocity = ((average - particle.r) * 2.0) * ATTENUATION_FACTOR;
+                // Get the particle:
+                const vec4 particle = texture2D(particles, particle_coord);
 
-        // Update the position:
-        const float position = particle.r + velocity;
+                // We want to change velocity to move towards this average height:
+                const float velocity = ((average - particle.r) * 2.0) * ATTENUATION_FACTOR;
 
-        gl_FragColor = vec4(position, velocity, particle.zw);
-      }
-    `;
-  }
+                // Update the position:
+                const float position = particle.r + velocity;
+
+                gl_FragColor = vec4(position, velocity, particle.zw);
+            }
+        `;
+    }
 };
 
-// This collection of shaders updates the particles buffer when something drops (a single
-// click, nothing big).
 shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activateTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
 
-  // The material will hold information about the click and whatnot.
-  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
-    // Map the current particle state buffer:
-    material.particleStateBuffer.activate(context, 1);
-    context.uniform1i(gpu_addresses.particles, 1);
+        // Specify the drop information:
+        gl.uniform1f(gpu_addresses.centerx,  material.posx);
+        gl.uniform1f(gpu_addresses.centery,  material.posy);
+        gl.uniform1f(gpu_addresses.radius,   material.radius);
+        gl.uniform1f(gpu_addresses.strength, material.strength);
+    }
 
-    // Update particle information:
-    context.uniform2fv(gpu_addresses.center, material.center);
-    context.uniform1f(gpu_addresses.radius, material.radius);
-    context.uniform1f(gpu_addresses.strength, material.strength);
-  }
-
-  shared_glsl_code() {
-    return `#version 300 es
+    shared_glsl_code() {
+        return `
+            #version 300 es
             precision mediump float;
-    `;
-  }
+        `;
+    }
 
-  vertex_glsl_code() {
-    return this.shared_glsl_code() + `
-      // The buffer index:
-      varying vec2 particle_coord;
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            // The buffer index:
+            varying vec2 particle_coord;
 
-      void main() {
-        // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-        particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-        gl_Position    = vec4(gl_Vertex.xyz, 1.0);
-      }
-    `;
-  }
+            void main() {
+                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
+                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
+                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+            }
+        `;
+    }
 
-  fragment_glsl_code() {
-    return this.shared_glsl_code() + `
-      const float PI = 3.14159265358979323846;
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            const float PI = 3.14159265358979323846;
 
-      uniform sampler2D particles;
+            uniform sampler2D particles;
 
-      // drop properties:
-      uniform vec2  center;
-      uniform float radius;
-      uniform float strength;
+            // drop properties:
+            uniform float centerx;
+            uniform float centery;
+            uniform float radius;
+            uniform float strength;
 
-      varying vec2 particle_coord;
+            varying vec2 particle_coord;
 
-      void main() {
-        // First, we map the center (see vertex shader):
-        const center_coord = center * 0.5 + 0.5;
+            void main() {
+                const center = vec2(centerx, centery);
 
-        // Calc how much we drop the water by depending on how far away we are:
-        const float delta = max(0.0, 1.0 - length(center_coord - particle_coord) / radius);
+                // First, we map the center (see vertex shader):
+                const center_coord = center * 0.5 + 0.5;
 
-        // Modulate the delta:
-        const float mod_delta = 0.5 - cos(delta * PI) * 0.5;
+                // Calc how much we drop the water by depending on how far away we are:
+                const float delta = max(0.0, 1.0 - length(center_coord - particle_coord) / radius);
 
-        // Apply the change to the particle:
-        gl_FragColor    = texture2D(particles, particle_coord);
-        gl_FragColor.r += mod_delta * strength; // pos.y
-      }
-    `;
-  }
+                // Modulate the delta:
+                const float mod_delta = 0.5 - cos(delta * PI) * 0.5;
+
+                // Apply the change to the particle:
+                gl_FragColor    = texture2D(particles, particle_coord);
+                gl_FragColor.r += mod_delta * strength; // pos.y
+            }
+        `;
+    }
 };
 
 shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
