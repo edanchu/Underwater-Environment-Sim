@@ -5,68 +5,142 @@ const { Vector, Vector3, vec3, vec4, Mat4, Matrix } = math;
 
 export const shaders = {};
 
+shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
+    update_GPU(gl, gpu_addresses, uniforms, model_transform, material) {
+        const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform];
+        const PCM       = P.times(C).times(M);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
+
+        gl.uniformMatrix4fv(gpu_addresses.pcm, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
+        gl.uniform3fv(gpu_addresses.lightPosition, material.lightPosition);
+    }
+
+    shared_glsl_code() {
+        return `#version 300 es
+        precision highp float;
+        `;
+    }
+
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            in vec3 position;
+
+            uniform sampler2D particles;
+            uniform mat4      pcm;
+
+            out vec3 pos;
+
+            void main() {
+                // Sample the height of the particle:
+                vec4 particle = texture(particles, position.xy * 0.5 + 0.5);
+
+                // Update the position with the height:
+                // pos    = position.xzy;
+                // pos.y += particle.r;
+
+                pos = position.xzy;
+                gl_Position = pcm * vec4(position.xzy, 1.0);
+            }
+        `;
+    }
+
+    // Basic phong-shader for now to make sure the ripples are present:
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            uniform sampler2D particles;
+            uniform vec3      lightPosition;
+
+            in  vec3 pos;
+            out vec4 fragColor;
+
+            void main() {
+                fragColor = texture(particles, pos.xz * 0.5 + 0.5); //vec4(1, 1, 1, 1);
+                return;
+
+                vec2 coord    = pos.xz * 0.5 + 0.5;
+                vec4 particle = texture(particles, coord);
+
+                for (int i = 0; i < 5; i++) {
+                    coord   += particle.ba * 0.005; // the normal
+                    particle = texture(particles, coord);
+                }
+
+                vec3 normal = normalize(vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a));
+                
+                // ambient:
+                float ambientStrength = 0.1;
+                vec3  ambient         = ambientStrength * vec3(1, 1, 1); // white light color
+
+                // diffuse:
+                vec3 lightDir = normalize(lightPosition - pos);
+                vec3 diffuse  = max(dot(normal, lightDir), 0.0) * vec3(1, 1, 1);
+
+                fragColor = particle; //vec4(ambient + diffuse, 1.0);
+            }
+        `;
+    }
+}
+
 // Particles are written as: (pos.y, vel.y, nrm.x, nrm.z)
 
 // This shader handles updating the normal information of the particle to allow
 // us to render the water:
 shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
     // The material will hold information about the click and whatnot.
-    update_GPU(context, gpu_addresses, _uniforms, _model_transform, material) {
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
-        gl.activateTexture(gl.TEXTURE0);
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         // Update particle information:
-        context.uniform1f(gpu_addresses.dimx, material.dimx);
-        context.uniform1f(gpu_addresses.dimy, material.dimy);
+        gl.uniform1f(gpu_addresses.dimx, material.dimx);
+        gl.uniform1f(gpu_addresses.dimy, material.dimy);
     }
 
     shared_glsl_code() {
-        return `
-            #version 300 es
-            precision mediump float;
+        return `#version 300 es
+        precision highp float;
         `;
     }
 
     vertex_glsl_code() {
         return this.shared_glsl_code() + `
-            // The buffer index:
-            varying vec2 particle_coord;
+            in  vec3 position;
+            out vec2 coord;
 
             void main() {
-                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
             }
         `;
     }
 
     fragment_glsl_code() {
         return this.shared_glsl_code() + `
-            const float ATTENUATION_FACTOR = 0.995
+            const float ATTENUATION_FACTOR = 0.995;
 
             uniform sampler2D particles;
+            uniform float     dimx;
+            uniform float     dimy;
 
-            // The dimensions of a column of water: 
-            uniform float dimx;
-            uniform float dimy;
-
-            varying vec2 particle_coord;
+            in  vec2 coord;
+            out vec4 fragColor;
 
             void main() {
-                const vec2 dim = vec2(dimx, dimy);
+                vec2 delta = vec2(dimx, dimy);
 
-                const vec4 particle = texture2D(particles, particle_coord);
+                vec4 particle = texture(particles, coord);
 
-                const vec3 dx = vec3(dim.x, texture2D(particles,
-                    vec2(particle_coord.x + dim.x, particle_coord.y)).r - particle.r, 0.0);
-                const vec3 dy = vec3(0.0, texture2D(particles,
-                    vec2(particle_coord.x, particle_coord.y + dim.y)).r - particle.r, dim.y);
+                vec3 dx = vec3(delta.x, texture(particles, vec2(coord.x + delta.x, coord.y)).r - particle.r, 0.0);
+                vec3 dy = vec3(0.0, texture(particles, vec2(coord.x, coord.y + delta.y)).r - particle.r, delta.y);
 
-                const vec2 normal = normalize(cross(dy, dx)).xz;
+                particle.ba = normalize(cross(dy, dx)).xz;
 
-                gl_FragColor = vec4(particle.rg, normal);
+                fragColor = particle;
             }
         `;
     }
@@ -74,74 +148,66 @@ shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
 
 // Given the current particle buffer, this shader updates the values:
 shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
-    update_GPU(context, gpu_addresses, _uniforms, _model_transform, material) {
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
-        gl.activateTexture(gl.TEXTURE0);
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         // Update particle information:
-        context.uniform1f(gpu_addresses.dimx, material.dimx);
-        context.uniform1f(gpu_addresses.dimy, material.dimy);
+        gl.uniform1f(gpu_addresses.dimx, material.dimx);
+        gl.uniform1f(gpu_addresses.dimy, material.dimy);
     }
 
     shared_glsl_code() {
-        return `
-            #version 300 es
-            precision mediump float;
+        return `#version 300 es
+        precision highp float;
         `;
     }
 
     vertex_glsl_code() {
         return this.shared_glsl_code() + `
-            // The buffer index:
-            varying vec2 particle_coord;
+            in  vec3 position;
+            out vec2 coord;
 
             void main() {
-                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
             }
         `;
     }
 
     fragment_glsl_code() {
         return this.shared_glsl_code() + `
-            const float ATTENUATION_FACTOR = 0.995
+            const float ATTENUATION_FACTOR = 0.995;
 
             uniform sampler2D particles;
+            uniform float     dimx;
+            uniform float     dimy;
 
-            // The dimensions of a column of water: 
-            uniform float dimx;
-            uniform float dimy;
-
-            varying vec2 particle_coord;
+            in  vec2 coord;
+            out vec4 fragColor;
 
             void main() {
-                const vec2 dim = vec2(dimx, dimy);
+                vec2 dim = vec2(dimx, dimy);
 
-                // We need to check the height of neighboring particles:
-                const vec2 dx = vec2(dim.x, 0.0);
-                const vec2 dy = vec2(0.0, dim.y);
+                vec2 dx = vec2(dim.x, 0.0);
+                vec2 dy = vec2(0.0, dim.y);
 
-                // Sample neighborhood:
-                const float average_height = (
-                    texture2D(texture, coord - dx).r + // pos.y
-                    texture2D(texture, coord - dy).r +
-                    texture2D(texture, coord + dx).r +
-                    texture2D(texture, coord + dy).r
+                float average = (
+                    texture(particles, coord - dx).r +
+                    texture(particles, coord - dy).r +
+                    texture(particles, coord + dx).r +
+                    texture(particles, coord + dy).r
                 ) * 0.25;
 
-                // Get the particle:
-                const vec4 particle = texture2D(particles, particle_coord);
+                vec4 particle = texture(particles, coord);
 
-                // We want to change velocity to move towards this average height:
-                const float velocity = ((average - particle.r) * 2.0) * ATTENUATION_FACTOR;
+                particle.g += (average - particle.r) * 2.0;
+                particle.g *= ATTENUATION_FACTOR;
+                particle.r += particle.g;
 
-                // Update the position:
-                const float position = particle.r + velocity;
-
-                gl_FragColor = vec4(position, velocity, particle.zw);
+                fragColor = particle;
             }
         `;
     }
@@ -150,7 +216,7 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
 shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
     update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
-        gl.activateTexture(gl.TEXTURE0);
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
@@ -162,21 +228,19 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
     }
 
     shared_glsl_code() {
-        return `
-            #version 300 es
-            precision mediump float;
+        return `#version 300 es
+        precision highp float;
         `;
     }
 
     vertex_glsl_code() {
         return this.shared_glsl_code() + `
-            // The buffer index:
-            varying vec2 particle_coord;
+            in  vec3 position;
+            out vec2 coord;
 
             void main() {
-                // We map gl_Vertex (a (-1, -1) to (1, 1) plane) to be 0 to 1.
-                particle_coord = gl_Vertex.xy * 0.5 + 0.5;
-                gl_Position    = vec4(gl_Vertex.xyz, 1.0);
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
             }
         `;
     }
@@ -186,34 +250,33 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
             const float PI = 3.14159265358979323846;
 
             uniform sampler2D particles;
+            uniform float     centerx;
+            uniform float     centery;
+            uniform float     radius;
+            uniform float     strength;
 
-            // drop properties:
-            uniform float centerx;
-            uniform float centery;
-            uniform float radius;
-            uniform float strength;
-
-            varying vec2 particle_coord;
+            in  vec2 coord;
+            out vec4 fragColor;
 
             void main() {
-                const center = vec2(centerx, centery);
+                vec2 center = vec2(centerx, centery);
+                     center = center * 0.5 + 0.5;
 
-                // First, we map the center (see vertex shader):
-                const center_coord = center * 0.5 + 0.5;
+                float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
+                      drop = 0.5 - cos(drop * PI) * 0.5;
 
-                // Calc how much we drop the water by depending on how far away we are:
-                const float delta = max(0.0, 1.0 - length(center_coord - particle_coord) / radius);
+                vec4 particle    = texture(particles, coord);
+                     particle.r += drop * strength;
 
-                // Modulate the delta:
-                const float mod_delta = 0.5 - cos(delta * PI) * 0.5;
-
-                // Apply the change to the particle:
-                gl_FragColor    = texture2D(particles, particle_coord);
-                gl_FragColor.r += mod_delta * strength; // pos.y
+                fragColor = vec4(1, 1, 1, 1); //particle;
             }
         `;
     }
 };
+
+//
+// ---------------------------------------------------------------------------------
+//
 
 shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {

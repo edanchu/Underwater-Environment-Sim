@@ -381,6 +381,8 @@ const Component = tiny.Component =
             gl.clearColor.apply(gl, background_color);
             // Load an extension to allow shapes with more than 65535 vertices.
             gl.getExtension("OES_element_index_uint");
+            gl.getExtension("EXT_color_buffer_float"); // need this to enable simulations on GPU
+            gl.getExtension("OES_texture_float_linear");
             gl.enable(gl.DEPTH_TEST);                            // Enable Z-Buffering test.
             // Specify an interpolation method for blending "transparent" triangles over the existing pixels:
             gl.enable(gl.BLEND);
@@ -493,6 +495,10 @@ const Component = tiny.Component =
                 canvas.style.display = "none";
             // Use tiny-graphics-js to draw graphics to the canvas, using the given scene objects.
             this.make_context(canvas, color(0, 0, 0, 1), overridden_options.dimensions);
+
+            // Call the user's init function after a context has been created:
+            this.init_context(this);
+
             // Start WebGL main loop - render() will re-queue itself for continuous calls.
             this.event = window.requestAnimFrame(this.frame_advance.bind(this));
 
@@ -514,6 +520,7 @@ const Component = tiny.Component =
         }
 
         init() { }
+        init_context(context) { } // initialization with a context
         render_animation(context) { }                            // Called each frame for drawing.
         render_explanation() { }
         render_controls() { }     // render_controls(): Called by Controls_Widget for generating interactive UI.
