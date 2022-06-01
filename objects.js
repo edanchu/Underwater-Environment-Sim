@@ -144,7 +144,8 @@ objects.boidsSchool = class boidsSchool {
         this.alignForce(0.2);
         this.limitVelocity(10);
         this.avoidCamera(25, 6, uniforms);
-        this.avoidWalls(15.0, 10);
+        this.avoidWalls(150.0, 10);
+        this.avoidPredators(50, 50, sceneObjects);
 
         this.boids.map((x) => {
             x.update(dt);
@@ -195,12 +196,31 @@ objects.boidsSchool = class boidsSchool {
         this.boids.map((x) => x.addForce(vAvg.times(alignmentForce)));
     }
 
-    avoidCamera(alignmentForce, minDist, uniforms) {
+    avoidCamera(avoidForce, minDist, uniforms) {
 
         this.boids.map((x) => {
             const cameraDist = x.pos.minus(vec3(uniforms.camera_transform[0][3], uniforms.camera_transform[1][3], uniforms.camera_transform[2][3]));
             if (cameraDist.norm() < minDist)
-                x.addForce(cameraDist.times(alignmentForce));
+                x.addForce(cameraDist.times(avoidForce));
+        });
+    }
+
+    avoidPredators(avoidForce, minDist, sceneObjects) {
+
+        let predatorLocations = [];
+        sceneObjects.map((x) => {
+            if (x.id.includes("shark")) {
+                predatorLocations.push(getPos(x.transform));
+            }
+        })
+
+        this.boids.map((x) => {
+            for (let i = 0; i < predatorLocations.length; i++) {
+                const dir = x.pos.minus(predatorLocations[i]);
+                const dist = dir.norm();
+                if (dist < minDist)
+                    x.addForce(dir.normalized().times(avoidForce));
+            }
         });
     }
 
@@ -231,4 +251,85 @@ objects.boidsSchool = class boidsSchool {
             x.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, zFactor * avoidanceForce));
         })
     }
+}
+
+objects.predator = class predator extends utils.SceneObject {
+    constructor(object, id, transform, boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
+        super(object.shape, object.material, transform, id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
+
+        this.boundingBox = boundingBox;
+        this.initTransform = object.transform;
+
+        this.particle = new Particle(1, getPos(this.transform), "symplectic");
+    }
+
+    update(sceneObjects, uniforms, dt) {
+        this.huntForce(0.3, sceneObjects);
+        this.avoidWalls(0.5, 10);
+        this.limitVelocity(15);
+
+        this.particle.update(dt);
+
+        const base = vec3(1, 0, 0);
+        const desired = this.particle.v.normalized();
+        const axis = base.cross(desired);
+        const angle = Math.acos(base.dot(desired));
+        this.transform = Mat4.translation(...this.particle.pos).times(Mat4.rotation(angle, ...axis));
+    }
+
+    huntForce(centerForce, sceneObjects) {
+        let centers = [];
+        sceneObjects.map((x) => {
+            if (x.id.includes("boids"))
+                centers.push(...x.centers);
+        });
+
+        let closest = { distance: 99999, index: 0 };
+        for (let i = 0; i < centers.length; i++) {
+            const dist = centers[i].minus(this.particle.pos).norm();
+            if (dist <= closest.distance) {
+                closest.distance = dist;
+                closest.index = i;
+            }
+        }
+        const f = centers[closest.index].minus(this.particle.pos).times(centerForce);
+        this.particle.addForce(f);
+    }
+
+    limitVelocity(maxV) {
+        if (this.particle.v.norm() > maxV) {
+            this.particle.v = this.particle.v.normalized().times(maxV);
+        }
+    }
+
+    avoidWalls(avoidanceForce, minDist) {
+        const x = this.particle;
+        let xFactor = 0, yFactor = 0, zFactor = 0;
+        if (Math.abs(x.pos[0] - this.boundingBox[0][1]) < minDist)
+            xFactor = -1;
+        else if (Math.abs(x.pos[0] - this.boundingBox[0][0]) < minDist)
+            xFactor = 1;
+        if (Math.abs(x.pos[1] - this.boundingBox[1][1]) < minDist)
+            yFactor = -1;
+        else if (Math.abs(x.pos[1] - this.boundingBox[1][0]) < minDist)
+            yFactor = 1;
+        if (Math.abs(x.pos[2] - this.boundingBox[2][1]) < minDist)
+            zFactor = -1;
+        else if (Math.abs(x.pos[2] - this.boundingBox[2][0]) < minDist)
+            zFactor = 1;
+
+        this.particle.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, zFactor * avoidanceForce));
+    }
+
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.material, this.drawType);
+    }
+
+    drawShadow(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.shadowMaterial, this.drawType);
+    }
+}
+
+function getPos(mat) {
+    return vec3(mat[0][3], mat[1][3], mat[2][3]);
 }

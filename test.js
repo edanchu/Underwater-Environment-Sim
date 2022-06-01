@@ -81,14 +81,20 @@ export class Test extends Component {
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
 
+    const sceneBounds = [[-125, 125], [-75, 10], [-125, 125]];
+
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
-    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
-    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
-    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), sceneBounds));
+
+    const shark = new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.scale(5, 5, 5), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow);
+    this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
+    this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
   }
 
   createShapes() {

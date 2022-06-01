@@ -390,7 +390,7 @@ utils.SceneObject = class SceneObject {
         this.shape.draw(context, uniforms, transformOverride, this.material, this.drawType);
     }
 
-    drawShadow(context, uniforms, materialOverride) {
+    drawShadow(context, uniforms) {
         this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
     }
 
