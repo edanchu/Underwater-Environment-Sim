@@ -4,7 +4,7 @@ import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import Particle from './Particle.js';
 
-const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
+const { vec3, vec4, color, Mat4, Matrix, Shape, Shader, Texture, Component } = tiny;
 
 export const objects = {};
 
@@ -35,6 +35,8 @@ objects.boidsController = class boidsController extends utils.SceneObject {
             const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
             this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));
         }
+
+        this.gpuInstances = new Map();
     }
 
     update(sceneObjects, uniforms, dt) {
@@ -52,13 +54,63 @@ objects.boidsController = class boidsController extends utils.SceneObject {
     }
 
     draw(context, uniforms, sceneObjects) {
-        this.boids.map((x) => {
+        const gl = context.context;
+
+        let matrices = new Float32Array(16 * this.numBoids);
+        this.boids.map((x, i) => {
             const base = vec3(-1, 0, 0);
             const desired = x.v.normalized();
             const axis = base.cross(desired);
             const angle = Math.acos(base.dot(desired));
-            this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
+            // this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
+            // matrices.push(...(Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed());
+            matrices.set(Matrix.flatten_2D_to_1D((Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed()), i * 16);
+            // matrices.set(Matrix.flatten_2D_to_1D(Mat4.identity().transposed()), i * 16);
         })
+
+        if (this.boidsObject.shape.ready) {
+
+            const gpuInstance = this.copy_onto_graphics_card(context.context, matrices);
+            this.material.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, Mat4.identity(), this.material);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
+            gl.drawElementsInstanced(gl[this.boidsObject.drawType], this.boidsObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numBoids);
+        }
+    }
+
+    copy_onto_graphics_card(context, matrices) {
+        const defaults = { webGL_buffer_pointers: {} };
+
+        const existing_instance = this.gpuInstances.get(context);
+
+        const gpu_instance = existing_instance || this.gpuInstances.set(context, defaults).get(context);
+
+        const gl = context;
+
+        if (!existing_instance) {
+            gpu_instance.webGL_buffer_pointers["position"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["position"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.boidsObject.shape.arrays["position"]), gl.STATIC_DRAW);
+
+            gpu_instance.webGL_buffer_pointers["normal"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["normal"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.boidsObject.shape.arrays["normal"]), gl.STATIC_DRAW);
+
+            gpu_instance.webGL_buffer_pointers["texture_coord"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["texture_coord"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.boidsObject.shape.arrays["texture_coord"]), gl.STATIC_DRAW);
+
+            gpu_instance.index_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu_instance.index_buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(this.boidsObject.shape.indices), gl.STATIC_DRAW);
+        }
+
+        if (!existing_instance)
+            gpu_instance.webGL_buffer_pointers["modelTransform_1"] = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["modelTransform_1"]);
+        gl.bufferData(gl.ARRAY_BUFFER, matrices, gl.STATIC_DRAW);
+
+        return gpu_instance;
     }
 
     drawShadow(context, uniforms) {
@@ -67,7 +119,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
             const desired = x.v.normalized();
             const axis = base.cross(desired);
             const angle = Math.acos(base.dot(desired));
-            this.boidsObject.drawShadowOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
+            // this.boidsObject.drawShadowOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
         })
     }
 
