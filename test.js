@@ -20,8 +20,10 @@ export class Test extends Component {
     this.pTextures = {};
     this.lightDepthTexture = null;
 
+    this.paused = false;
+
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(10, 35, 10, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
   }
 
   render_animation(context) {
@@ -35,11 +37,14 @@ export class Test extends Component {
     const t = this.t = this.uniforms.animation_time / 1000;
     const dt = this.dt = this.uniforms.animation_delta_time / 1000;
 
-    const fixedTimeStep = 0.001;
-    for (let i = 0; i < dt; i += fixedTimeStep) {
-      this.sceneObjects.map((x) => x.fixedUpdate(this.sceneObjects, this.uniforms, fixedTimeStep));
+    if (!this.paused) {
+
+      const fixedTimeStep = 0.001;
+      for (let i = 0; i < dt; i += fixedTimeStep) {
+        this.sceneObjects.map((x) => x.fixedUpdate(this.sceneObjects, this.uniforms, fixedTimeStep));
+      }
+      this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
     }
-    this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
 
     this.render(context);
   }
@@ -78,8 +83,8 @@ export class Test extends Component {
   createSceneObjects() {
     this.sceneObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
-    // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(10, 10, 10)), "ground", "forward", "TRIANGLE_STRIP", false));
 
     const sceneBounds = [[-125, 125], [-75, 15], [-125, 125]];
 
@@ -104,7 +109,6 @@ export class Test extends Component {
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
     this.shapes.cube = new defs.Cube();
-    this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca/orca.obj");
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
@@ -140,7 +144,7 @@ export class Test extends Component {
       smoothness: 10
     };
 
-    this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
+    this.materials.sand = { ...this.materials.plastic, color: color(1, 1, 1, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
@@ -576,5 +580,10 @@ export class Test extends Component {
     gl.disable(gl.BLEND);
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
+  }
+
+  render_controls() {
+    this.key_triggered_button("Pause fish movement", ["p"], () => this.paused = !this.paused);
+    this.new_line();
   }
 }

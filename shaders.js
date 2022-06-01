@@ -2124,13 +2124,17 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
         return worldspace.xyz;
     }
 
+    float ease(float x){
+      return 1.0 - cos((x * 3.14159265) / 2.0);
+    }
+
     void main() {
         ivec2 fragCoord = ivec2(gl_FragCoord.xy);
         vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
         vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
 
         float viewDist = 300.0;
-        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)  /2.0, clamp(length(position - cameraCenter) / viewDist, 0.0, 1.0));
+        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)  /2.0, ease(clamp(length(position - cameraCenter) / viewDist, 0.0, 1.0)));
 
         FragColor = vec4(fog, 1.0);
     }

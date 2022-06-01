@@ -140,7 +140,7 @@ objects.boidsSchool = class boidsSchool {
     update(sceneObjects, uniforms, dt) {
 
         this.centerForce(0.5);
-        this.centerOfBoxForce(0.5);
+        this.centerOfBoxForce(0.001);
         this.separateForce(0.3, 10);
         this.alignForce(0.2);
         this.avoidCamera(25, 6, uniforms);
@@ -176,7 +176,7 @@ objects.boidsSchool = class boidsSchool {
     }
 
     centerOfBoxForce(centeringForce) {
-        this.boids.map((x) => x.addForce(this.center.minus(x.pos).times(centeringForce)));
+        this.boids.map((x) => x.addForce(vec3(0, 5, 0).minus(x.pos).times(centeringForce)));
     }
 
 
@@ -275,7 +275,7 @@ objects.predator = class predator extends utils.SceneObject {
     update(sceneObjects, uniforms, dt) {
         this.huntForce(0.3, 50, sceneObjects);
         this.centerForce(2);
-        this.avoidWalls(50, 10);
+        this.avoidWalls(50, 20);
         this.avoidPredators(12.5, 40, sceneObjects);
         this.limitVelocity(15);
 
