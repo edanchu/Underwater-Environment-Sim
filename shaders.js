@@ -223,6 +223,63 @@ shaders.GeometryShader = class GeometryShader extends tiny.Shader {
   }
 }
 
+shaders.GeometryShaderInstanced = class GeometryShaderInstanced extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C] = [uniforms.projection_transform, uniforms.camera_inverse], PC = P.times(C);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera_transform, false, Matrix.flatten_2D_to_1D(PC.transposed()));
+
+    context.uniform4fv(gpu_addresses.color, material.color);
+    context.uniform4fv(gpu_addresses.specularColor, material.specularColor);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;
+    in vec3 normal;
+    in mat4 modelTransform_1;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+
+    uniform mat4 projection_camera_transform;
+
+    void main() { 
+      gl_Position = (projection_camera_transform * modelTransform_1) * vec4( position, 1.0 );
+      vPos = (modelTransform_1 * vec4(position, 1.0)).xyz;
+      vNorm = normalize(mat3(transpose(inverse(modelTransform_1))) * normal);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    layout (location = 0) out vec4 FragPosition;
+    layout (location = 1) out vec4 FragNormal;
+    layout (location = 2) out vec4 FragAlbedo;
+    layout (location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+
+    uniform vec4 color;
+    uniform vec4 specularColor;
+
+    void main() {                                                   
+      FragPosition = vec4(vPos, 1.0);
+      FragNormal = vec4(vNorm, 1.0);
+      FragAlbedo = color;
+      FragSpecular = specularColor;
+    }`;
+  }
+}
+
 shaders.GeometryShaderTextured = class GeometryShaderTextured extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
@@ -405,6 +462,80 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
   }
 }
 
+shaders.GeometryShaderTexturedMinimalInstanced = class GeometryShaderTexturedMinimalInstanced extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PC = P.times(C);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera, false, Matrix.flatten_2D_to_1D(PC.transposed()));
+
+    material.texAlbedo.activate(context, 1);
+    context.uniform1i(gpu_addresses.texAlbedo, 1);
+
+    context.uniform1f(gpu_addresses.metallic, material.metallic);
+    context.uniform1f(gpu_addresses.roughness, material.roughness);
+    context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+    in vec3 normal;
+    in vec2 texture_coord;
+    in mat4 modelTransform_1;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+
+    uniform mat4 projection_camera;
+    uniform float time;
+
+    void main() { 
+      gl_Position = (projection_camera*modelTransform_1) * vec4( position, 1.0 );
+      vPos = (modelTransform_1 * vec4(position, 1.0)).xyz;
+      vNorm = normalize(mat3(transpose(inverse(modelTransform_1))) * normal);
+      vUV = texture_coord;
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    layout(location = 0) out vec4 FragPosition;
+    layout(location = 1) out vec4 FragNormal;
+    layout(location = 2) out vec4 FragAlbedo;
+    layout(location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec2 vUV;
+
+    uniform sampler2D texAlbedo;
+    uniform float metallic;
+    uniform float roughness;
+    uniform float ambient;
+
+    uniform vec3 cameraCenter;
+
+    void main() {
+        vec3 albedo = texture(texAlbedo, vUV).rgb;
+
+        FragPosition = vec4(vPos, 1.0);
+        FragNormal = vec4(normalize(vNorm), 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz, vec3(2.2)), 1.0);
+        FragSpecular = vec4(roughness, ambient, 1.0, metallic);
+    }
+    
+    `;
+  }
+}
+
 shaders.FishGeometryShader = class FishGeometryShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
@@ -483,6 +614,116 @@ shaders.FishGeometryShader = class FishGeometryShader extends tiny.Shader {
       gl_Position = projection_camera_model_transform * vec4( pos, 1.0 );
       vPos = (modelTransform * vec4(pos, 1.0)).xyz;
       vNorm = normalize(mat3(normalMatrix) * normal);
+      vUV = texture_coord;
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    layout(location = 0) out vec4 FragPosition;
+    layout(location = 1) out vec4 FragNormal;
+    layout(location = 2) out vec4 FragAlbedo;
+    layout(location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec2 vUV;
+
+    uniform sampler2D texAlbedo;
+    uniform float metallic;
+    uniform float roughness;
+    uniform float ambient;
+
+    uniform vec3 cameraCenter;
+
+    void main() {
+        vec3 albedo = texture(texAlbedo, vUV).rgb;
+
+        FragPosition = vec4(vPos, 1.0);
+        FragNormal = vec4(normalize(vNorm), 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz, vec3(2.2)), 1.0);
+        FragSpecular = vec4(roughness, ambient, 1.0, metallic);
+    }
+    
+    `;
+  }
+}
+
+shaders.FishGeometryShaderInstanced = class FishGeometryShaderInstanced extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PC = P.times(C);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera, false, Matrix.flatten_2D_to_1D(PC.transposed()));
+
+    material.texAlbedo.activate(context, 1);
+    context.uniform1i(gpu_addresses.texAlbedo, 1);
+
+    context.uniform1f(gpu_addresses.metallic, material.metallic);
+    context.uniform1f(gpu_addresses.roughness, material.roughness);
+    context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+    context.uniform1f(gpu_addresses.wiggleFrequency, 1.15);
+    context.uniform1f(gpu_addresses.wiggleAmplitude, 0.08);
+    context.uniform1f(gpu_addresses.speed, 8.0);
+    context.uniform1f(gpu_addresses.panAmplitude, 0.13);
+    context.uniform1f(gpu_addresses.twistAmplitude, 0.12);
+    context.uniform1f(gpu_addresses.rollAmplitude, 0.15);
+    context.uniform1f(gpu_addresses.rollFrequency, 1.02);
+    context.uniform1f(gpu_addresses.genAmplitude, document.getElementById("sld1").value);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    layout (location = 0) in vec3 position;  
+    layout (location = 1) in vec3 normal;
+    layout (location = 2) in vec2 texture_coord;
+    layout (location = 3) in mat4 modelTransform_1;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+
+    uniform mat4 projection_camera;
+    uniform float time;
+    uniform float wiggleAmplitude;
+    uniform float wiggleFrequency;
+    uniform float speed;
+    uniform float panAmplitude;
+    uniform float twistAmplitude;
+    uniform float rollAmplitude;
+    uniform float rollFrequency;
+    uniform float genAmplitude;
+
+    void main() { 
+      vec3 pos = position;
+
+      float genAmpTimeMult = 1.1 / (genAmplitude);
+
+      float xRot = sin((time + 0.2) * genAmpTimeMult * speed - pow(pos.x + 3.0, rollFrequency)) * pow(pos.x + 3.0, 1.1) * rollAmplitude * genAmplitude;
+      float rotCos = cos(xRot), rotSin = sin(xRot);
+      mat3 xRotMat = mat3(vec3(1, 0, 0), vec3(0, rotCos, rotSin), vec3(0, -rotSin, rotCos));
+      pos = xRotMat * pos;
+
+      float yRot = sin(time * genAmpTimeMult * speed) * twistAmplitude * genAmplitude;
+      rotCos = cos(yRot), rotSin = sin(yRot);
+      mat3 yRotMat = mat3(vec3(rotCos, 0, -rotSin), vec3(0, 1, 0), vec3(rotSin, 0, rotCos));
+      pos.x += 1.5;
+      pos = yRotMat * pos;
+      pos.x -= 1.5;
+
+      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 3.0, wiggleFrequency))) * pow(pos.x + 3.0, 1.1) * wiggleAmplitude * genAmplitude;
+      pos.z += panAmplitude * sin(speed * genAmpTimeMult * time) * genAmplitude;
+
+
+      gl_Position = (projection_camera * modelTransform_1) * vec4( pos, 1.0 );
+      vPos = (modelTransform_1 * vec4(pos, 1.0)).xyz;
+      vNorm = normalize(mat3(transpose(inverse(modelTransform_1))) * normal);
       vUV = texture_coord;
     }`;
   }
