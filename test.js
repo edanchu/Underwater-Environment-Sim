@@ -74,7 +74,7 @@ export class Test extends Component {
     //postprocess
     this.depthFogPass(context);
     this.volumePass(context);
-    this.bloom(5, context);
+    this.bloom(3, context);
 
     // //copy to screen
     this.drawToScreen(context);
@@ -88,10 +88,10 @@ export class Test extends Component {
 
     const sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
-    const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), sceneBounds));
     this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), sceneBounds));
     this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), sceneBounds));

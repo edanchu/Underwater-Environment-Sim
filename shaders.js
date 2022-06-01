@@ -1415,7 +1415,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
             for(int y = -1; y <= 1; ++y)
             {
                 float light_depth_value = linearDepth(texture(lightDepthTexture, center + vec2(x, y) * texel_size).x); 
-                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.003 ) ? 0.8 : 0.0;
+                shadow += (linearDepth(projected_depth) >= light_depth_value + 0.008 ) ? 0.8 : 0.0;
             }    
         }
         shadow /= 9.0;
