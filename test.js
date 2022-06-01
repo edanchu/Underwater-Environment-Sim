@@ -80,12 +80,15 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
-    // this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow));
-    // this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, this.materials.basicShadow));
-    // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids", 20, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
+    const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
+    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
+    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
+    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
   }
 
   createShapes() {
@@ -131,7 +134,10 @@ export class Test extends Component {
     };
 
     this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
-    this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.trout4 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish4, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
   }
 
@@ -139,6 +145,10 @@ export class Test extends Component {
     this.textures = {};
     this.textures.HDRI = new utils.HDRTexture('/assets/textures/maps/hdr.hdr');
     this.textures.caustic = new Texture('/assets/textures/misc/caust_001.png');
+    this.textures.fish1 = new Texture('assets/meshes/trout/troutAlbedo.png');
+    this.textures.fish2 = new Texture('assets/meshes/trout/trout2.png');
+    this.textures.fish3 = new Texture('assets/meshes/trout/trout3.png');
+    this.textures.fish4 = new Texture('assets/meshes/trout/trout4.png');
   }
 
   firstTimeSetup(context) {

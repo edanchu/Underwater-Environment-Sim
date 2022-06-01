@@ -57,7 +57,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         if (this.boidsObject.shape.ready) {
 
             const gpuInstance = this.copy_onto_graphics_card(context.context, matrices);
-            this.material.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, Mat4.identity(), this.material);
+            this.material.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, Mat4.identity(), { ...this.material, fishPerSchool: this.fishPerSchool });
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
             gl.drawElementsInstanced(gl[this.boidsObject.drawType], this.boidsObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numBoids);
