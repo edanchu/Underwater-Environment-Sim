@@ -404,6 +404,47 @@ utils.SceneObject = class SceneObject {
 
 }
 
+utils.KelpObject = class KelpObject{
+    constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES", castShadows = true, shadowMaterial = null, clusterVal = 0) {
+        this.shape = shape;
+        this.material = material;
+        this.transform = initTransform;
+        this.drawType = drawType;
+        this.pass = pass;
+        this.id = id;
+        this.castShadows = castShadows;
+        this.shadowMaterial = (shadowMaterial != null) ? shadowMaterial : this.material;
+        this.t = 0;
+        this.clusterVal = clusterVal;
+        console.log(clusterVal);
+    }
+
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+    }
+
+    drawOverrideMaterial(context, uniforms, materialOverride) {
+        this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
+    }
+
+    drawOverrideTransform(context, uniforms, transformOverride) {
+        this.shape.draw(context, uniforms, transformOverride, this.material, this.drawType);
+    }
+
+    drawShadow(context, uniforms, materialOverride) {
+        this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
+    }
+
+    drawShadowOverrideTransform(context, uniforms, transformOverride) {
+        this.shape.draw(context, uniforms, transformOverride, this.shadowMaterial, this.drawType);
+    }
+
+    update(sceneObjects, uniforms, dt) { };
+
+    fixedUpdate(sceneObjects, uniforms, dt) { };
+
+}
+
 utils.Boid = class Boid {
     constructor(position, velocity) {
         this.pos = position.copy();

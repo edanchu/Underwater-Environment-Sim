@@ -21,6 +21,20 @@ objects.trout = class trout extends utils.SceneObject {
     }
 }
 
+objects.kelp = class kelp extends utils.KelpObject {
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+    }
+    update(sceneObjects, uniforms, dt) { 
+        this.t += dt;
+        let timeStep = Math.sin(this.t+this.clusterVal)/60;
+        let point1 = vec3(this.shape.controlPoints[1].pos[0] += timeStep, this.shape.controlPoints[1].pos[1], this.shape.controlPoints[1].pos[2] += timeStep);
+        let point2 = vec3(this.shape.controlPoints[2].pos[0] += timeStep, this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += timeStep);
+        this.shape.editPoint(1, point1, false);
+        this.shape.editPoint(2, point2, false);
+    };
+}
+
 objects.boidsController = class boidsController extends utils.SceneObject {
     constructor(object, id, numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-75, 20], [-75, 75]]) {
         super(object.shape, object.material, Mat4.identity(), id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);

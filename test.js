@@ -4,8 +4,16 @@ import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
 import { objects } from './objects.js';
+import { HermiteSpline } from './HermiteSpline.js'
 
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
+
+const floor = -85;
+const ceiling = 20;
+const kelp_clusters = 10;
+const kelp_max = 10;
+const kelp_min = 6;
+
 
 export class Test extends Component {
   init() {
@@ -27,7 +35,7 @@ export class Test extends Component {
   render_animation(context) {
     const gl = context.context;
     if (this.textures.HDRI.ready != true) return;
-
+    
     if (!context.controls /*checks if first animated frame*/) {
       this.firstTimeSetup(context);
     }
@@ -40,7 +48,6 @@ export class Test extends Component {
       this.sceneObjects.map((x) => x.fixedUpdate(this.sceneObjects, this.uniforms, fixedTimeStep));
     }
     this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
-
     this.render(context);
   }
 
@@ -54,7 +61,6 @@ export class Test extends Component {
 
     //deferred geometry
     this.sceneObjects.map((x) => { if (x.pass == "deferred") x.draw(context, this.uniforms) });
-
     //lights
     this.bindLBufferForLights(gl, this.FBOs.lBuffer);
 
@@ -66,7 +72,6 @@ export class Test extends Component {
     this.prepForForwardPass(gl, this.FBOs.lBuffer, this.FBOs.gBuffer);
     this.sceneObjects.map((x) => { if (x.pass == "forward") x.draw(context, this.uniforms) });
     this.sceneObjects.map((x) => { if (x.pass == "transparent") x.draw(context, this.uniforms) });
-
     //postprocess
     this.depthFogPass(context);
     this.volumePass(context);
@@ -78,14 +83,18 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
+    //this.kelpObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
+    //this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0,floor,0).times(Mat4.scale(100, .01, 100)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
     // this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, this.materials.basicShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    
+    
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
@@ -109,6 +118,17 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    
+    for(var i = 0; i < kelp_clusters; i += 1){
+      let kelp_amt = Math.floor(Math.random() * (kelp_max - kelp_min + 1) + kelp_min);
+      let cluster_location = vec3(Math.floor(Math.random() * 80),0,Math.floor(Math.random() * 80));
+      for(var j = 0; j < kelp_amt; j += 1){
+        let single_location = vec3(Math.floor(Math.random() * 5),0,Math.floor(Math.random() * 5));
+        this.createKelp(cluster_location.plus(single_location));
+        const kelp = new objects.kelp(this.shapes.kelp, this.materials.kelp, Mat4.identity(), "kelp", "deferred", "TRIANGLE_STRIP", false,null, i);
+        this.sceneObjects.push(kelp);
+      }
+    }
   }
 
   createShapes() {
@@ -122,6 +142,11 @@ export class Test extends Component {
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
+  }
+  createKelp(location) { 
+    this.shapes.kelp = new HermiteSpline();
+    for(var i = floor; i <= ceiling; i += ((ceiling-floor)/2))
+      this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));
   }
 
   createMaterials() {
@@ -156,6 +181,7 @@ export class Test extends Component {
     this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
     this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.kelp =  { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
   }
 
   createTextures() {
