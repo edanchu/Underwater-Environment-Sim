@@ -30,6 +30,8 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         this.boidsPerSchool = boidsPerSchool;
         this.numBoids = boidsPerSchool * numSchools;
 
+        this.centers = [];
+
         this.schools = [];
         for (let i = 0; i < numSchools; i++) {
             const schoolCenter = vec3((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120);
@@ -41,8 +43,9 @@ objects.boidsController = class boidsController extends utils.SceneObject {
     }
 
     update(sceneObjects, uniforms, dt) {
-        this.schools.map((x) => {
+        this.schools.map((x, i) => {
             x.update(sceneObjects, uniforms, dt);
+            this.centers[i] = x.center;
         })
     }
 
@@ -166,6 +169,7 @@ objects.boidsSchool = class boidsSchool {
             center.add_by(x.pos);
         })
         center.scale_by(1 / this.numBoids);
+        this.center = center;
         this.boids.map((x) => x.addForce(center.minus(x.pos).times(centeringForce)));
     }
 
