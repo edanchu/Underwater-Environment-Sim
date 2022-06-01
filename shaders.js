@@ -706,7 +706,7 @@ shaders.SharkGeometryShader = class SharkGeometryShader extends tiny.Shader {
     void main() { 
       vec3 pos = vec3(-1,1,1) * position;
 
-      float genAmpTimeMult = 0.8;
+      float genAmpTimeMult = 0.7;
 
       float xRot = sin((time + 0.2) * genAmpTimeMult * speed - pow(pos.x + 3.0, rollFrequency)) * pow(pos.x + 3.0, 1.1) * rollAmplitude * genAmplitude;
       float rotCos = cos(xRot), rotSin = sin(xRot);
@@ -720,7 +720,7 @@ shaders.SharkGeometryShader = class SharkGeometryShader extends tiny.Shader {
       pos = yRotMat * pos;
       pos.x -= 1.5;
 
-      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 5.0, wiggleFrequency))) * pow(pos.x + 4.0, 1.1) * wiggleAmplitude * genAmplitude;
+      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 5.0, wiggleFrequency))) * pow(pos.x + 6.0, 1.1) * wiggleAmplitude * genAmplitude;
       pos.z += panAmplitude * sin(speed * genAmpTimeMult * time) * genAmplitude;
 
 
@@ -1063,7 +1063,7 @@ shaders.SharkShadowShader = class SharkShadowShader extends tiny.Shader {
     void main() { 
       vec3 pos = vec3(-1,1,1) * position;
 
-      float genAmpTimeMult = 0.8;
+      float genAmpTimeMult = 0.7;
 
       float xRot = sin((time + 0.2) * genAmpTimeMult * speed - pow(pos.x + 3.0, rollFrequency)) * pow(pos.x + 3.0, 1.1) * rollAmplitude * genAmplitude;
       float rotCos = cos(xRot), rotSin = sin(xRot);
@@ -1077,7 +1077,7 @@ shaders.SharkShadowShader = class SharkShadowShader extends tiny.Shader {
       pos = yRotMat * pos;
       pos.x -= 1.5;
 
-      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 5.0, wiggleFrequency))) * pow(pos.x + 4.0, 1.1) * wiggleAmplitude * genAmplitude;
+      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 5.0, wiggleFrequency))) * pow(pos.x + 6.0, 1.1) * wiggleAmplitude * genAmplitude;
       pos.z += panAmplitude * sin(speed * genAmpTimeMult * time) * genAmplitude;
 
 
