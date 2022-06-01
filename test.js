@@ -23,7 +23,7 @@ export class Test extends Component {
     this.paused = false;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(10, 35, 10, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
   }
 
   render_animation(context) {
@@ -84,9 +84,9 @@ export class Test extends Component {
     this.sceneObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(10, 10, 10)), "ground", "forward", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
-    const sceneBounds = [[-125, 125], [-75, 15], [-125, 125]];
+    const sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
@@ -144,7 +144,7 @@ export class Test extends Component {
       smoothness: 10
     };
 
-    this.materials.sand = { ...this.materials.plastic, color: color(1, 1, 1, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 };
+    this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
@@ -164,7 +164,7 @@ export class Test extends Component {
 
   firstTimeSetup(context) {
     const gl = context.context;
-    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 8192, gl.canvas.width, gl.canvas.height);
+    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 4096, gl.canvas.width, gl.canvas.height);
     this.FBOs = _FBOs, this.gTextures = _gTextures, this.lTextures = _lTextures, this.pTextures = _pTextures, this.cTextures = _cTextures, this.lightDepthTexture = _lightDepthTexture, this.lightColorTexture = _lightColorTexture;
 
     this.uniforms.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 1000);
@@ -207,13 +207,13 @@ export class Test extends Component {
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.viewport(0, 0, 8192, 8192);
+    gl.viewport(0, 0, 4096, 4096);
 
-    this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], 35, this.uniforms.camera_transform[2][3], 0));
+    this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], 35, this.uniforms.camera_transform[2][3] - 150, 0));
 
     if (this.sunViewOrig == undefined) {
       this.sunViewOrig = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
-      this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
+      this.sunProj = Mat4.orthographic(-400, 250, -400, 250, 0.5, 150);
       // this.sunProj = Mat4.perspective(140 * Math.PI / 180, 1, 0.5, 150);
     }
     this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));

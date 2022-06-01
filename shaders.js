@@ -1363,6 +1363,10 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         vec3 c = color / (color + vec3(1.0));
         return pow(c, vec3(1.0 / 2.2));
     }
+
+    float ease(float x){
+      return 1.0 - cos((x * 3.14159265) / 2.0);
+    }
     
     vec3 PBR(vec3 WorldPos, vec3 Normal, vec3 albedo, float roughness, float metallic) {
         vec3 N = normalize(Normal);
@@ -1375,8 +1379,8 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     
         vec3 L = normalize(lightPos.xyz);
         vec3 H = normalize(V + L);
-        const float viewDist = 300.0 / 2.0;
-        vec3 radiance = mix(lightColor.xyz, vec3(0, 0, 0), clamp(length(WorldPos - cameraCenter) / viewDist, 0.0, 1.0));;
+        const float viewDist = 300.0;
+        vec3 radiance = mix(lightColor.xyz, vec3(0, 0, 0), ease(clamp(length(WorldPos - cameraCenter) / viewDist, 0.0, 1.0)));
     
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
@@ -1405,7 +1409,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         vec2 center = lightSamplePos.xy;
         float projected_depth = lightSamplePos.z;
         float shadow = 0.0;
-        float texel_size = 1.0 / 8192.0;
+        float texel_size = 1.0 / 4096.0;
         for(int x = -1; x <= 1; ++x)
         {
             for(int y = -1; y <= 1; ++y)
