@@ -11,7 +11,7 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
         const PCM       = P.times(C).times(M);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         gl.uniformMatrix4fv(gpu_addresses.pcm, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
@@ -38,11 +38,10 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                 vec4 particle = texture(particles, position.xy * 0.5 + 0.5);
 
                 // Update the position with the height:
-                // pos    = position.xzy;
-                // pos.y += particle.r;
+                pos    = position.xzy;
+                pos.y += particle.r;
 
-                pos = position.xzy;
-                gl_Position = pcm * vec4(position.xzy, 1.0);
+                gl_Position = pcm * vec4(pos, 1.0);
             }
         `;
     }
@@ -57,9 +56,6 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
             out vec4 fragColor;
 
             void main() {
-                fragColor = texture(particles, pos.xz * 0.5 + 0.5); //vec4(1, 1, 1, 1);
-                return;
-
                 vec2 coord    = pos.xz * 0.5 + 0.5;
                 vec4 particle = texture(particles, coord);
 
@@ -68,7 +64,7 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                     particle = texture(particles, coord);
                 }
 
-                vec3 normal = normalize(vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a));
+                vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
                 
                 // ambient:
                 float ambientStrength = 0.1;
@@ -78,7 +74,7 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                 vec3 lightDir = normalize(lightPosition - pos);
                 vec3 diffuse  = max(dot(normal, lightDir), 0.0) * vec3(1, 1, 1);
 
-                fragColor = particle; //vec4(ambient + diffuse, 1.0);
+                fragColor = vec4(ambient + diffuse, 1.0);
             }
         `;
     }
@@ -93,12 +89,12 @@ shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
     update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         // Update particle information:
-        gl.uniform1f(gpu_addresses.dimx, material.dimx);
-        gl.uniform1f(gpu_addresses.dimy, material.dimy);
+        gl.uniform1f(gpu_addresses.deltax, material.deltax);
+        gl.uniform1f(gpu_addresses.deltay, material.deltay);
     }
 
     shared_glsl_code() {
@@ -121,18 +117,15 @@ shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
 
     fragment_glsl_code() {
         return this.shared_glsl_code() + `
-            const float ATTENUATION_FACTOR = 0.995;
-
             uniform sampler2D particles;
-            uniform float     dimx;
-            uniform float     dimy;
+            uniform float     deltax;
+            uniform float     deltay;
 
             in  vec2 coord;
             out vec4 fragColor;
 
             void main() {
-                vec2 delta = vec2(dimx, dimy);
-
+                vec2 delta    = vec2(deltax, deltay);
                 vec4 particle = texture(particles, coord);
 
                 vec3 dx = vec3(delta.x, texture(particles, vec2(coord.x + delta.x, coord.y)).r - particle.r, 0.0);
@@ -151,12 +144,12 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
     update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         // Update particle information:
-        gl.uniform1f(gpu_addresses.dimx, material.dimx);
-        gl.uniform1f(gpu_addresses.dimy, material.dimy);
+        gl.uniform1f(gpu_addresses.deltax, material.deltax);
+        gl.uniform1f(gpu_addresses.deltay, material.deltay);
     }
 
     shared_glsl_code() {
@@ -179,20 +172,19 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
 
     fragment_glsl_code() {
         return this.shared_glsl_code() + `
-            const float ATTENUATION_FACTOR = 0.995;
-
             uniform sampler2D particles;
-            uniform float     dimx;
-            uniform float     dimy;
+            uniform float     deltax;
+            uniform float     deltay;
 
             in  vec2 coord;
             out vec4 fragColor;
 
             void main() {
-                vec2 dim = vec2(dimx, dimy);
+                vec2 delta    = vec2(deltax, deltay);
+                vec4 particle = texture(particles, coord);
 
-                vec2 dx = vec2(dim.x, 0.0);
-                vec2 dy = vec2(0.0, dim.y);
+                vec2 dx = vec2(delta.x, 0.0);
+                vec2 dy = vec2(0.0, delta.y);
 
                 float average = (
                     texture(particles, coord - dx).r +
@@ -201,10 +193,8 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
                     texture(particles, coord + dy).r
                 ) * 0.25;
 
-                vec4 particle = texture(particles, coord);
-
                 particle.g += (average - particle.r) * 2.0;
-                particle.g *= ATTENUATION_FACTOR;
+                particle.g *= 0.995;
                 particle.r += particle.g;
 
                 fragColor = particle;
@@ -217,7 +207,7 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
     update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
         // The texture with the current state:
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE2D, material.texture);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
         gl.uniform1i(gpu_addresses.particles, 0);
 
         // Specify the drop information:
@@ -259,16 +249,15 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
             out vec4 fragColor;
 
             void main() {
-                vec2 center = vec2(centerx, centery);
-                     center = center * 0.5 + 0.5;
+                vec2 center   = vec2(centerx, centery);
+                vec4 particle = texture(particles, coord);
 
                 float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
-                      drop = 0.5 - cos(drop * PI) * 0.5;
+                    drop = 0.5 - cos(drop * PI) * 0.5;
 
-                vec4 particle    = texture(particles, coord);
-                     particle.r += drop * strength;
+                particle.r += drop * strength;
 
-                fragColor = vec4(1, 1, 1, 1); //particle;
+                fragColor = particle; //vec4(particle.xyz, 1) * 100.0;
             }
         `;
     }
