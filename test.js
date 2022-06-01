@@ -108,6 +108,7 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+
   }
 
   createShapes() {

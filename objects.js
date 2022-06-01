@@ -56,15 +56,16 @@ objects.boidsController = class boidsController extends utils.SceneObject {
     draw(context, uniforms, sceneObjects) {
         const gl = context.context;
 
-        let matrices = [];
-        this.boids.map((x) => {
+        let matrices = new Float32Array(16 * this.numBoids);
+        this.boids.map((x, i) => {
             const base = vec3(-1, 0, 0);
             const desired = x.v.normalized();
             const axis = base.cross(desired);
             const angle = Math.acos(base.dot(desired));
             // this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
             // matrices.push(...(Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed());
-            matrices.push(...Mat4.identity());
+            matrices.set(Matrix.flatten_2D_to_1D((Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed()), i * 16);
+            // matrices.set(Matrix.flatten_2D_to_1D(Mat4.identity().transposed()), i * 16);
         })
 
         if (this.boidsObject.shape.ready) {
@@ -107,7 +108,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         if (!existing_instance)
             gpu_instance.webGL_buffer_pointers["modelTransform_1"] = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["modelTransform_1"]);
-        gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(matrices), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, matrices, gl.STATIC_DRAW);
 
         return gpu_instance;
     }

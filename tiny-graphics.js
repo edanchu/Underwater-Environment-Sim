@@ -258,9 +258,9 @@ const Shader = tiny.Shader =
                 if (attr_name.endsWith("_1")) {
                     for (let i = 0; i < 4; i++) {
                         context.enableVertexAttribArray(attribute.index + i);
-                        context.vertexAttribPointer(attribute.index + i, 4, context.FLOAT, attribute.normalized, attribute.stride, attribute.pointer);
+                        context.vertexAttribPointer(attribute.index + i, 4, context.FLOAT, attribute.normalized, 64, attribute.pointer + i * 16);
+                        context.vertexAttribDivisor(attribute.index + i, 1);
                     }
-                    context.vertexAttribDivisor(attribute.index, 1);
                 }
                 else {
                     context.enableVertexAttribArray(attribute.index);
