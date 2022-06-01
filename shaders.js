@@ -382,7 +382,6 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       }
 
       void main() {
-        /*
         vec3 flow = texture(waterFlow, texCoord).xyz;
         flow.xy = flow.xy * 2.0 - 1.0;
         flow *= 0.3;
@@ -392,8 +391,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
         vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
-        vec3 normal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
-        */
+        vec3 textNormal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
 
         vec2 coord    = texCoord;
         vec4 particle = texture(particles, coord);
@@ -404,6 +402,12 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         }
 
         vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
+
+        if (normal == vec3(0.0, 1.0, 0.0)) {
+            normal = textNormal;
+        } else {
+            normal = mix(normal, textNormal, vec3(0.3));
+        }
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));

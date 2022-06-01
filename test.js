@@ -39,7 +39,7 @@ export class Test extends Component {
     };
 
     for (var i = 0; i < 20; i++) {
-      this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.5); //(i & 1) ? 0.01 : -0.01);
+      this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
     }
 
     this.whenToDistort = 0;
@@ -81,7 +81,7 @@ export class Test extends Component {
 
     if (this.whenToDistort % 256 === 0) {
       for (var i = 0; i < 20; i++) {
-        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.5); //(i & 1) ? 0.01 : -0.01);
+        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
       }
     }
 
