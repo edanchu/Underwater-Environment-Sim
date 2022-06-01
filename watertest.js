@@ -35,12 +35,6 @@ export class WaterTest extends Component {
         // Assign the camera:
         Shader.assign_camera(Mat4.look_at(vec3(3, 3, 3), vec3(0, 0, 0), vec3(0, 1, 0)), this.uniforms);
         this.uniforms.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 1, 100);
-
-
-        const phong  = new defs.Phong_Shader();
-        this.plastic = { shader: phong, ambient: .2, diffusivity: 1, specularity: .5, color: color( .9,.5,.9,1 ) }
-
-        this.shape = new defs.Subdivision_Sphere( 4 );
     }
 
     render_animation(context) {
@@ -52,40 +46,31 @@ export class WaterTest extends Component {
 
         // Update the texture:
         this.#waterMaterial.texture = this.#waterSim.particleTexture();
-        this.#waterMesh.draw({context: gl}, this.uniforms, Mat4.identity(), this.#waterMaterial, "TRIANGLE_STRIP");
-
-        //this.shape.draw({context: gl}, this.uniforms, Mat4.identity(), this.plastic);
+        this.#waterMesh.draw({context: gl}, this.uniforms, Mat4.identity(), this.#waterMaterial);
     }
 }
 
 // The water plane:
 class WaterPlane extends Shape {
-    // // Constructs the shape, using detailx and detaily to specify a resolution:
-    // constructor(detailx, detaily) {
-    //     super("position");
-
-    //     this.arrays.position = [];
-    //     this.indices         = [];
-
-    //     for (let y = 0; y <= detaily; y++) {
-    //         const t = y / detaily;
-    //         for (let x = 0; x <= detailx; x++) {
-    //             const s = x / detailx;
-    //             this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
-
-    //             if (x < detailx && y < detaily) {
-    //                 const i = x + y * (detailx + 1);
-    //                 this.indices.push(i, i + 1, i + detailx + 1);
-    //                 this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
-    //             }
-    //         }
-    //     }
-    // }
-
-    constructor() {
+    // Constructs the shape, using detailx and detaily to specify a resolution:
+    constructor(detailx, detaily) {
         super("position");
-        // Drawn as a triangle strip:
-        this.arrays.position = [vec3(-1, 1, 0), vec3(-1, -1, 0), vec3(1, 1, 0), vec3(1, -1, 0)];
-        this.indices         = [0, 1, 2, 3];
+
+        this.arrays.position = [];
+        this.indices         = [];
+
+        for (let y = 0; y <= detaily; y++) {
+            const t = y / detaily;
+            for (let x = 0; x <= detailx; x++) {
+                const s = x / detailx;
+                this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
+
+                if (x < detailx && y < detaily) {
+                    const i = x + y * (detailx + 1);
+                    this.indices.push(i, i + 1, i + detailx + 1);
+                    this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
+                }
+            }
+        }
     }
 }

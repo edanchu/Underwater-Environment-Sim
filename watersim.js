@@ -46,6 +46,13 @@ export class WaterSim {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, resx, resy);
 
+        // Set the textures to 0 initially:
+
+        const zeroBuffer = new Float32Array(resx * resy * 4); // RGBA
+        zeroBuffer.fill(0); // set to all zero
+
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, resx, resy, gl.RGBA, gl.FLOAT, zeroBuffer);
+
         return texture;
     }
 
@@ -58,8 +65,10 @@ export class WaterSim {
     // Renders the result to textureB. The rendering occurs in the renderFunction.
     #renderTextureB(gl, renderFunction) {
         // Save the old viewport state:
-        const viewport = gl.getParameter(gl.VIEWPORT);
+        const currentViewport    = gl.getParameter(gl.VIEWPORT);
+        const currentFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
 
+        // Create a framebuffer:
         const framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.#textureB, 0);
@@ -69,23 +78,23 @@ export class WaterSim {
             throw "Unsupported framebuffer.";
         }
 
-        // We don't need any of these here:
+        // Disable rendering modes:
         gl.disable(gl.BLEND);
-        gl.disable(gl.CULL_FACE);
         gl.disable(gl.DEPTH_TEST);
         gl.clear(gl.COLOR_BUFFER_BIT);
-
         gl.viewport(0, 0, this.#resx, this.#resy);
 
         renderFunction();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+        // Destroy the framebuffer:
+        gl.bindFramebuffer(gl.FRAMEBUFFER, currentFramebuffer);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.deleteFramebuffer(framebuffer);
 
-        // enable these again
+        // Reset positions:
         gl.enable(gl.BLEND);
-        gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        gl.viewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);
     }
 
     // Updates the texture with a drop as posx and posy with the specified radius and strength:
@@ -119,8 +128,8 @@ export class WaterSim {
             const material = { 
                 shader:   this.#stepShader,
                 texture:  this.#textureA,
-                dimx:     1.0 / this.#resx,
-                dimy:     1.0 / this.#resy,
+                deltax:   1.0 / this.#resx,
+                deltay:   1.0 / this.#resy,
             };
 
             // We now draw this:
@@ -137,8 +146,8 @@ export class WaterSim {
             const material = { 
                 shader:   this.#normalShader,
                 texture:  this.#textureA,
-                dimx:     1.0 / this.#resx,
-                dimy:     1.0 / this.#resy,
+                deltax:   1.0 / this.#resx,
+                deltay:   1.0 / this.#resy,
             };
 
             // We now draw this:
