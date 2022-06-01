@@ -16,7 +16,6 @@ objects.WaterPlane = class WaterPlane extends utils.SceneObject {
 
 objects.trout = class trout extends utils.SceneObject {
     draw(context, uniforms) {
-        // this.shape.draw(context, uniforms, Mat4.identity(), { ...this.material, roughness: document.getElementById('sld2').value, metallic: document.getElementById('sld1').value }, this.drawType);
         this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
     }
 }
@@ -33,7 +32,7 @@ objects.boidsController = class boidsController extends utils.SceneObject {
 
         this.schools = [];
         for (let i = 0; i < numSchools; i++) {
-            const schoolCenter = vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60);
+            const schoolCenter = vec3((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120);
             this.schools.push(new objects.boidsSchool(this.boidsPerSchool, schoolCenter, this.boundingBox, this.boidsObject.transform));
         }
 
