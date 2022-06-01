@@ -301,6 +301,14 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
     context.uniform1i(gpu_addresses.waterDerivativeHeight, 2);
 
     context.uniform1f(gpu_addresses.planeSize, material.planeSize);
+
+    // Bind the water particle texture:
+
+    const gl = context;
+
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, material.waterParticles);
+    gl.uniform1i(gpu_addresses.particles, 3);
   }
 
   shared_glsl_code() {
@@ -313,7 +321,9 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
     return this.shared_glsl_code() + `
       in vec3 position;
       in vec3 normal;   
-      in vec2 texture_coord;      
+      in vec2 texture_coord;    
+      
+      uniform sampler2D particles;
 
       uniform mat4 projection_camera_transform;
       uniform mat4 modelTransform;
@@ -324,12 +334,18 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       out vec3 vertexWorldspace;
       out vec2 texCoord;
 
-      void main() { 
+      void main() {
+        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
+
+        // Distort the position:
+        // vec4 particle = texture(particles, texCoord);
+        // vec3 newPos   = position;
+        // newPos.y     += particle.r;
+
         vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
 
         gl_Position = projection_camera_transform * vec4( p, 1.0 );
         vertexWorldspace = p; 
-        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
       }`;
   }
 
@@ -339,60 +355,13 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
 
       uniform sampler2D waterFlow;
       uniform sampler2D waterDerivativeHeight;
+      uniform sampler2D particles;
       uniform float time;
       uniform vec4 color;
       uniform vec3 cameraCenter;
 
       in vec3 vertexWorldspace;
       in vec2 texCoord;
-
-      vec3 GerstnerWave (vec4 wave, vec3 p, inout vec3 tangent, inout vec3 binormal, float timeOffset) {
-        float steepness = wave.z;
-        float wavelength = wave.w;
-        float k = 2.0 * 3.141592653589 / wavelength;
-        float c = sqrt(9.8 / k);
-        vec2 d = normalize(wave.xy);
-        float f = k * (dot(d, p.xz) - c * time / timeOffset);
-        float a = steepness / k;
-    
-        tangent += vec3(
-            -d.x * d.x * (steepness * sin(f)),
-            d.x * (steepness * cos(f)),
-            -d.x * d.y * (steepness * sin(f)));
-        binormal += vec3(
-            -d.x * d.y * (steepness * sin(f)),
-            d.y * (steepness * cos(f)),
-            -d.y * d.y * (steepness * sin(f)));
-        return vec3(
-            d.x * (a * cos(f)),
-            a * sin(f),
-            d.y * (a * cos(f)));
-      }
-
-      float ease(float x){
-        return sqrt(1.0 - pow(x - 1.0, 2.0));
-        // return sin((x * 3.14159) / 2.0);
-        // return 1.0 - pow(1.0 - x, 3.0);
-      }
-
-      vec3 generateWaves(vec3 pos, inout vec3 tan, inout vec3 bin){
-        vec2 dir;
-        vec3 p = pos;
-        float initSteepness = 0.18, initFrequency = 15.0, initSpeed = 3.2;
-        float endSteepness = 0.1, endFrequency = 1.0, endSpeed = 1.8;
-        float steepness, frequency, speed;
-        const float iterations = 25.0;
-        float x, roc = 1.0;
-        for (float i = 0.0; i < iterations; i++){
-          dir = vec2(sin(i / roc), cos(i / roc));
-          x = i/iterations;
-          steepness = mix(initSteepness, endSteepness, ease(x));
-          frequency = mix(initFrequency, endFrequency, ease(x));
-          speed = mix(initSpeed, endSpeed, ease(x));
-          p += GerstnerWave(vec4(dir, steepness, frequency), pos, tan, bin, speed);
-        }
-        return p;
-      }
 
       vec3 Distort (vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB) {
           float phaseOffset = flowB ? 0.5 : 0.0;
@@ -413,6 +382,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       }
 
       void main() {
+        /*
         vec3 flow = texture(waterFlow, texCoord).xyz;
         flow.xy = flow.xy * 2.0 - 1.0;
         flow *= 0.3;
@@ -423,6 +393,17 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
         vec3 normal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
+        */
+
+        vec2 coord    = texCoord;
+        vec4 particle = texture(particles, coord);
+
+        for (int i = 0; i < 5; i++) {
+            coord   += particle.ba * 0.005; // the normal
+            particle = texture(particles, coord);
+        }
+
+        vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));

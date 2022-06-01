@@ -4,6 +4,7 @@ import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
 import { objects } from './objects.js';
+import { WaterSim } from './watersim.js';
 
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 
@@ -24,8 +25,29 @@ export class Test extends Component {
     this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
   }
 
+  init_context(context) {
+    const gl = context.context;
+
+    // Construct the water sim:
+    this.waterSim    = new WaterSim(gl, 1024, 1024);
+    this.waterShader = new shaders.WaterMeshShader();
+
+    this.waterMaterial = {
+      shader:        this.waterShader,
+      texture:       null, // will be set later
+      lightPosition: vec3(2, 2, 2),
+    };
+
+    for (var i = 0; i < 20; i++) {
+      this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.5); //(i & 1) ? 0.01 : -0.01);
+    }
+
+    this.whenToDistort = 0;
+  }
+
   render_animation(context) {
     const gl = context.context;
+
     if (this.textures.HDRI.ready != true) return;
 
     if (!context.controls /*checks if first animated frame*/) {
@@ -46,6 +68,22 @@ export class Test extends Component {
 
   render(context) {
     const gl = context.context;
+
+    // Step the water simulation:
+    this.waterSim.step(gl);
+    this.waterSim.step(gl);
+    this.waterSim.normals(gl);
+
+    // Get the water particle texture:
+    this.materials.water.waterParticles = this.waterSim.particleTexture();
+
+    this.whenToDistort += 1;
+
+    if (this.whenToDistort % 256 === 0) {
+      for (var i = 0; i < 20; i++) {
+        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.5); //(i & 1) ? 0.01 : -0.01);
+      }
+    }
 
     //draw light depth buffer for sun shadows
     this.drawSunShadows(context);
@@ -77,7 +115,7 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
-    this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
 
@@ -133,6 +171,7 @@ export class Test extends Component {
       gTextures: () => this.gTextures,
       waterFlow: new Texture('assets/textures/water/flow_speed_noise.png'),
       waterDerivativeHeight: new Texture('assets/textures/water/water_derivative_height.png'),
+      waterParticles: null, // the texture that points to the water particles that we render
       planeSize: this.planeSize,
       specularity: 6.8,
       ambient: 0.3,

@@ -78,6 +78,10 @@ export class WaterSim {
             throw "Unsupported framebuffer.";
         }
 
+        // This way we can restore it as appropirate:
+        const blendEnabled = gl.isEnabled(gl.BLEND);
+        const depthEnabled = gl.isEnabled(gl.DEPTH_TEST); 
+
         // Disable rendering modes:
         gl.disable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
@@ -92,8 +96,12 @@ export class WaterSim {
         gl.deleteFramebuffer(framebuffer);
 
         // Reset positions:
-        gl.enable(gl.BLEND);
-        gl.enable(gl.DEPTH_TEST);
+        if (blendEnabled) {
+            gl.enable(gl.BLEND);
+        }
+        if (depthEnabled) {
+            gl.enable(gl.DEPTH_TEST);
+        }
         gl.viewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3]);
     }
 
