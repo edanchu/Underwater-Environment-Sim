@@ -145,7 +145,7 @@ objects.boidsSchool = class boidsSchool {
         this.alignForce(0.2);
         this.avoidCamera(25, 6, uniforms);
         this.avoidWalls(20.0, 10);
-        this.avoidPredators(50, 50, sceneObjects);
+        this.avoidPredators(40, 50, sceneObjects);
         this.limitVelocity(this.chased ? 20 : 10);
 
         this.boids.map((x) => {
@@ -273,37 +273,39 @@ objects.predator = class predator extends utils.SceneObject {
     }
 
     update(sceneObjects, uniforms, dt) {
-        this.huntForce(0.3, sceneObjects);
+        this.huntForce(0.3, 50, sceneObjects);
+        this.centerForce(2);
         this.avoidWalls(50, 10);
         this.avoidPredators(12.5, 40, sceneObjects);
         this.limitVelocity(15);
 
         this.particle.update(dt);
 
-        const base = vec3(1, 0, 0);
+        const base = vec3(-1, 0, 0);
         const desired = this.particle.v.normalized();
         const axis = base.cross(desired);
         const angle = Math.acos(base.dot(desired));
         this.transform = Mat4.translation(...this.particle.pos).times(Mat4.rotation(angle, ...axis));
     }
 
-    huntForce(centerForce, sceneObjects) {
+    centerForce(force) {
+        this.particle.addForce(this.particle.pos.normalized().times(-1));
+    }
+
+    huntForce(centerForce, minDist, sceneObjects) {
         let centers = [];
         sceneObjects.map((x) => {
             if (x.id.includes("boids"))
                 centers.push(...x.centers);
         });
 
-        let closest = { distance: 99999, index: 0 };
         for (let i = 0; i < centers.length; i++) {
-            const dist = centers[i].minus(this.particle.pos).norm();
-            if (dist <= closest.distance) {
-                closest.distance = dist;
-                closest.index = i;
+            const dir = centers[i].minus(this.particle.pos);
+            const dist = dir.norm();
+            if (dist <= minDist) {
+                this.particle.addForce(dir.times(centerForce));
             }
         }
-        const f = centers[closest.index].minus(this.particle.pos).times(centerForce);
-        this.particle.addForce(f);
     }
 
     avoidPredators(avoidForce, minDist, sceneObjects) {
