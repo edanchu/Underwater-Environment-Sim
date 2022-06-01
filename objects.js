@@ -140,12 +140,13 @@ objects.boidsSchool = class boidsSchool {
     update(sceneObjects, uniforms, dt) {
 
         this.centerForce(0.5);
+        this.centerOfBoxForce(0.5);
         this.separateForce(0.3, 10);
         this.alignForce(0.2);
-        this.limitVelocity(10);
         this.avoidCamera(25, 6, uniforms);
-        this.avoidWalls(150.0, 10);
+        this.avoidWalls(20.0, 10);
         this.avoidPredators(50, 50, sceneObjects);
+        this.limitVelocity(this.chased ? 20 : 10);
 
         this.boids.map((x) => {
             x.update(dt);
@@ -173,6 +174,11 @@ objects.boidsSchool = class boidsSchool {
         this.center = center;
         this.boids.map((x) => x.addForce(center.minus(x.pos).times(centeringForce)));
     }
+
+    centerOfBoxForce(centeringForce) {
+        this.boids.map((x) => x.addForce(this.center.minus(x.pos).times(centeringForce)));
+    }
+
 
     separateForce(separationForce, minDist) {
         this.boids.map((x, i) => {
@@ -206,6 +212,7 @@ objects.boidsSchool = class boidsSchool {
     }
 
     avoidPredators(avoidForce, minDist, sceneObjects) {
+        this.chased = false;
 
         let predatorLocations = [];
         sceneObjects.map((x) => {
@@ -218,8 +225,10 @@ objects.boidsSchool = class boidsSchool {
             for (let i = 0; i < predatorLocations.length; i++) {
                 const dir = x.pos.minus(predatorLocations[i]);
                 const dist = dir.norm();
-                if (dist < minDist)
+                if (dist < minDist) {
                     x.addForce(dir.normalized().times(avoidForce));
+                    this.chased = true;
+                }
             }
         });
     }
@@ -240,9 +249,9 @@ objects.boidsSchool = class boidsSchool {
             else if (Math.abs(x.pos[0] - this.boundingBox[0][0]) < minDist)
                 xFactor = 1;
             if (Math.abs(x.pos[1] - this.boundingBox[1][1]) < minDist)
-                yFactor = -1;
+                yFactor = -10;
             else if (Math.abs(x.pos[1] - this.boundingBox[1][0]) < minDist)
-                yFactor = 1;
+                yFactor = 10;
             if (Math.abs(x.pos[2] - this.boundingBox[2][1]) < minDist)
                 zFactor = -1;
             else if (Math.abs(x.pos[2] - this.boundingBox[2][0]) < minDist)
@@ -265,7 +274,8 @@ objects.predator = class predator extends utils.SceneObject {
 
     update(sceneObjects, uniforms, dt) {
         this.huntForce(0.3, sceneObjects);
-        this.avoidWalls(0.5, 10);
+        this.avoidWalls(50, 10);
+        this.avoidPredators(12.5, 40, sceneObjects);
         this.limitVelocity(15);
 
         this.particle.update(dt);
@@ -294,6 +304,23 @@ objects.predator = class predator extends utils.SceneObject {
         }
         const f = centers[closest.index].minus(this.particle.pos).times(centerForce);
         this.particle.addForce(f);
+    }
+
+    avoidPredators(avoidForce, minDist, sceneObjects) {
+        let predatorLocations = [];
+        sceneObjects.map((x) => {
+            if (x.id.includes("shark") && x.id != this.id) {
+                predatorLocations.push(getPos(x.transform));
+            }
+        })
+
+        for (let i = 0; i < predatorLocations.length; i++) {
+            const dir = this.particle.pos.minus(predatorLocations[i]);
+            const dist = dir.norm();
+            if (dist < minDist) {
+                this.particle.addForce(dir.normalized().times(avoidForce));
+            }
+        }
     }
 
     limitVelocity(maxV) {
