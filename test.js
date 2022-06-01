@@ -9,7 +9,7 @@ import { HermiteSpline } from './HermiteSpline.js'
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 
 const floor = -85;
-const ceiling = 20;
+const ceiling = 25;
 const kelp_clusters = 10;
 const kelp_max = 10;
 const kelp_min = 6;
@@ -118,7 +118,11 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
     this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    
+
+    //THIS WILL CAUSE LAG IF YOU UNCOMMENT IT
+    //IN createKelp UNCOMMENT THE COMMENT OUT PORTION AND COMMENT THE OTHER ONE IF YOU WANT IT TO NOT LAG
+    //IN objects.js kelp update FUNCTION UNCOMMENT THE MIDDLE BLOCK AS WELL
+    /*
     for(var i = 0; i < kelp_clusters; i += 1){
       let kelp_amt = Math.floor(Math.random() * (kelp_max - kelp_min + 1) + kelp_min);
       let cluster_location = vec3(Math.floor(Math.random() * 80),0,Math.floor(Math.random() * 80));
@@ -128,7 +132,11 @@ export class Test extends Component {
         const kelp = new objects.kelp(this.shapes.kelp, this.materials.kelp, Mat4.identity(), "kelp", "deferred", "TRIANGLE_STRIP", false,null, i);
         this.sceneObjects.push(kelp);
       }
-    }
+    }*/
+    this.createKelp(vec3(0,0,0));
+    const kelp = new objects.kelp(this.shapes.kelp, this.materials.kelp, Mat4.identity(), "kelp", "deferred", "TRIANGLE_STRIP", false,null, 1);
+    this.sceneObjects.push(kelp);
+
   }
 
   createShapes() {
@@ -143,9 +151,13 @@ export class Test extends Component {
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
   }
-  createKelp(location) { 
+  createKelp(location) {
+    /* 
     this.shapes.kelp = new HermiteSpline();
     for(var i = floor; i <= ceiling; i += ((ceiling-floor)/2))
+      this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));*/
+    this.shapes.kelp = new HermiteSpline();
+    for(var i = floor; i <= ceiling; i += ((ceiling-floor)/50))
       this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));
   }
 

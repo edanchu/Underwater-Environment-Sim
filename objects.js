@@ -33,15 +33,23 @@ objects.kelp = class kelp extends utils.KelpObject {
         let point2 = vec3(this.shape.controlPoints[2].pos[0] += timeStep, this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += timeStep);
         this.shape.editPoint(1, point1, false);
         this.shape.editPoint(2, point2, false);*/
+
+        /*
         this.t += dt;
         let timeStep = Math.sin(this.t+this.clusterVal)/60;
         let point1 = vec3(this.shape.controlPoints[1].pos[0] += timeStep, this.shape.controlPoints[1].pos[1], this.shape.controlPoints[1].pos[2] += timeStep);
-        let point2 = vec3(this.shape.controlPoints[2].pos[0] += timeStep, this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += timeStep);
-        //let tan0 = this.shape.controlPoints[0].minus();
+        let point2 = vec3(this.shape.controlPoints[2].pos[0] += (timeStep * 2), this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += (timeStep * 2));
         let tan1 = this.shape.controlPoints[1].pos.minus(point1).times(1/timeStep).plus(this.shape.controlPoints[1].tan);
         let tan2 = this.shape.controlPoints[2].pos.minus(point2).times(1/timeStep).plus(this.shape.controlPoints[2].tan);
         this.shape.editPoint(1, point1, tan1);
-        this.shape.editPoint(2, point2, tan2);
+        this.shape.editPoint(2, point2, tan2);*/
+        this.t += dt;
+        let timeStep = Math.sin(this.t+this.clusterVal)/60;
+
+        for(var i = 0; i < 50; i+=1){
+            let point1 = vec3(this.shape.controlPoints[i].pos[0] += timeStep, this.shape.controlPoints[i].pos[1], this.shape.controlPoints[i].pos[2] += timeStep);
+            this.shape.editPoint(i, point1, false);
+        }
     };
 }
 
