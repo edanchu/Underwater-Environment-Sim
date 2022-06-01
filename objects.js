@@ -16,40 +16,33 @@ objects.WaterPlane = class WaterPlane extends utils.SceneObject {
 
 objects.trout = class trout extends utils.SceneObject {
     draw(context, uniforms) {
-        // this.shape.draw(context, uniforms, Mat4.identity(), { ...this.material, roughness: document.getElementById('sld2').value, metallic: document.getElementById('sld1').value }, this.drawType);
         this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
     }
 }
 
 objects.boidsController = class boidsController extends utils.SceneObject {
-    constructor(object, id, numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-75, 20], [-75, 75]]) {
+    constructor(object, id, numSchools = 10, boidsPerSchool = 20, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
         super(object.shape, object.material, Mat4.identity(), id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
 
         this.boundingBox = boundingBox;
         this.boidsObject = object;
-        this.numBoids = numBoids;
+        this.numSchools = numSchools;
+        this.boidsPerSchool = boidsPerSchool;
+        this.numBoids = boidsPerSchool * numSchools;
 
-        this.boids = [];
-        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5);
-        for (let i = 0; i < numBoids; i++) {
-            const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
-            this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));
+        this.schools = [];
+        for (let i = 0; i < numSchools; i++) {
+            const schoolCenter = vec3((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120);
+            this.schools.push(new objects.boidsSchool(this.boidsPerSchool, schoolCenter, this.boundingBox, this.boidsObject.transform));
         }
+
 
         this.gpuInstances = new Map();
     }
 
     update(sceneObjects, uniforms, dt) {
-
-        this.centerForce(0.5);
-        this.separateForce(0.3, 10);
-        this.alignForce(0.2);
-        this.limitVelocity(10);
-        this.avoidCamera(25, 6, uniforms);
-        this.avoidWalls(15.0, 10);
-
-        this.boids.map((x) => {
-            x.update(dt);
+        this.schools.map((x) => {
+            x.update(sceneObjects, uniforms, dt);
         })
     }
 
@@ -57,21 +50,32 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         const gl = context.context;
 
         let matrices = new Float32Array(16 * this.numBoids);
-        this.boids.map((x, i) => {
-            const base = vec3(-1, 0, 0);
-            const desired = x.v.normalized();
-            const axis = base.cross(desired);
-            const angle = Math.acos(base.dot(desired));
-            // this.boidsObject.drawOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
-            // matrices.push(...(Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed());
-            matrices.set(Matrix.flatten_2D_to_1D((Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform))).transposed()), i * 16);
-            // matrices.set(Matrix.flatten_2D_to_1D(Mat4.identity().transposed()), i * 16);
+        this.schools.map((x, i) => {
+            matrices.set(x.getMatrices(), i * 16 * this.boidsPerSchool);
         })
 
         if (this.boidsObject.shape.ready) {
 
             const gpuInstance = this.copy_onto_graphics_card(context.context, matrices);
             this.material.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, Mat4.identity(), this.material);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
+            gl.drawElementsInstanced(gl[this.boidsObject.drawType], this.boidsObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numBoids);
+        }
+    }
+
+    drawShadow(context, uniforms) {
+        const gl = context.context;
+
+        let matrices = new Float32Array(16 * this.numBoids);
+        this.schools.map((x, i) => {
+            matrices.set(x.getMatrices(), i * 16 * this.boidsPerSchool);
+        })
+
+        if (this.boidsObject.shape.ready) {
+
+            const gpuInstance = this.copy_onto_graphics_card(context.context, matrices);
+            this.shadowMaterial.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, null, this.shadowMaterial);
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
             gl.drawElementsInstanced(gl[this.boidsObject.drawType], this.boidsObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numBoids);
@@ -113,14 +117,47 @@ objects.boidsController = class boidsController extends utils.SceneObject {
         return gpu_instance;
     }
 
-    drawShadow(context, uniforms) {
+}
+
+objects.boidsSchool = class boidsSchool {
+    constructor(numBoids = 10, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-75, 15], [-75, 75]], initTransform) {
+
+        this.boundingBox = boundingBox;
+        this.numBoids = numBoids;
+        this.initTransform = initTransform;
+
+        this.boids = [];
+        const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5);
+        for (let i = 0; i < numBoids; i++) {
+            const initPos = vec3(10 * (Math.random() - 0.5) + center[0], 10 * (Math.random() - 0.5) + center[1], 10 * (Math.random() - 0.5) + center[2]);
+            this.boids.push(new Particle(3, initPos, "symplectic", false, initVel));
+        }
+    }
+
+    update(sceneObjects, uniforms, dt) {
+
+        this.centerForce(0.5);
+        this.separateForce(0.3, 10);
+        this.alignForce(0.2);
+        this.limitVelocity(10);
+        this.avoidCamera(25, 6, uniforms);
+        this.avoidWalls(15.0, 10);
+
         this.boids.map((x) => {
+            x.update(dt);
+        })
+    }
+
+    getMatrices() {
+        let matrices = new Float32Array(16 * this.numBoids);
+        this.boids.map((x, i) => {
             const base = vec3(-1, 0, 0);
             const desired = x.v.normalized();
             const axis = base.cross(desired);
             const angle = Math.acos(base.dot(desired));
-            // this.boidsObject.drawShadowOverrideTransform(context, uniforms, Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.boidsObject.transform)));
+            matrices.set(Matrix.flatten_2D_to_1D((Mat4.translation(...x.pos).times(Mat4.rotation(angle, ...axis).times(this.initTransform))).transposed()), i * 16);
         })
+        return matrices;
     }
 
     centerForce(centeringForce) {

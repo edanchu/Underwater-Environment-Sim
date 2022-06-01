@@ -85,30 +85,7 @@ export class Test extends Component {
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-
+    this.sceneObjects.push(new objects.boidsController(trout, "boids", 20, 35, vec3(0, 0, 0), [[-75, 75], [-75, 15], [-75, 75]]));
   }
 
   createShapes() {
@@ -138,7 +115,7 @@ export class Test extends Component {
     this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
 
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase(), proj: () => this.sunProj, view: () => this.sunView };
-    this.materials.fishShadow = { shader: new shaders.FishShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.fishShadow = { shader: new shaders.FishShadowShaderInstanced(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
       shader: new shaders.WaterSurfaceShader(),
@@ -173,7 +150,7 @@ export class Test extends Component {
 
     this.animated_children.push(context.controls = new utils.CustomMovementControls({ uniforms: this.uniforms }));
     context.controls.add_mouse_controls(context.canvas);
-    Shader.assign_camera(Mat4.look_at(vec3(0, 0, 10), vec3(0, 0, 0), vec3(0, 1, 0)), this.uniforms);
+    Shader.assign_camera(Mat4.look_at(vec3(100, 0, 100), vec3(0, 0, 0), vec3(0, 1, 0)), this.uniforms);
 
     this.convolveCubemaps(context, this.FBOs.cBuffer, this.cTextures, this.shapes.cube, this.textures.HDRI);
 
