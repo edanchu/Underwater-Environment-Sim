@@ -17,7 +17,7 @@ export class WaterTest extends Component {
         const gl = context.context;
 
         // Construct the water sim:
-        this.#waterSim    = new WaterSim(gl, 256, 256);
+        this.#waterSim    = new WaterSim(gl, 1024, 1024); //256, 256);
         this.#waterMesh   = new WaterPlane(200, 200);
         this.#waterShader = new shaders.WaterMeshShader();
 
@@ -29,7 +29,7 @@ export class WaterTest extends Component {
 
         // Initialize the water with some drops:
         for (var i = 0; i < 20; i++) {
-            this.#waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.03, (i & 1) ? 0.01 : -0.01);
+            this.#waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.5); //(i & 1) ? 0.01 : -0.01);
         }
 
         // Assign the camera:

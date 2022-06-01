@@ -248,16 +248,32 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
             in  vec2 coord;
             out vec4 fragColor;
 
+            float volumeInSphere(vec3 center) {
+                vec3 toCenter = vec3(coord.x * 2.0 - 1.0, 0.0, coord.y * 2.0 - 1.0) - center;
+                float t = length(toCenter) / radius;
+                float dy = exp(-pow(t * 1.5, 6.0));
+                float ymin = min(0.0, center.y - dy);
+                float ymax = min(max(0.0, center.y + dy), ymin + 2.0 * dy);
+                return (ymax - ymin) * 0.1;
+            }
+
             void main() {
                 vec2 center   = vec2(centerx, centery);
                 vec4 particle = texture(particles, coord);
 
-                float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
-                    drop = 0.5 - cos(drop * PI) * 0.5;
+                // float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
+                //       drop = 0.5 - cos(drop * PI) * 0.5;
 
-                particle.r += drop * strength;
+                // particle.r += drop * strength;
 
-                fragColor = particle; //vec4(particle.xyz, 1) * 100.0;
+                // calculate new sphere location in 3D;
+                vec3 newCenter = vec3(center, -strength);
+                vec3 oldCenter = vec3(center, strength);
+
+                particle.r += volumeInSphere(oldCenter);
+                particle.r -= volumeInSphere(newCenter);
+
+                fragColor = particle;
             }
         `;
     }
