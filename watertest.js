@@ -2,10 +2,10 @@
 import { math     } from './tiny-graphics-math.js'
 import { shaders  } from  './shaders.js';
 import { WaterSim } from './watersim.js';
-import {tiny, defs} from './examples/common.js';
+import { tiny     } from './examples/common.js';
 
 const { Shape, Component, Shader } = tiny;
-const { Mat4, vec3, color        } = math;
+const { Mat4, vec3,              } = math;
 
 export class WaterTest extends Component {
     #waterSim;
@@ -29,7 +29,7 @@ export class WaterTest extends Component {
 
         // Initialize the water with some drops:
         for (var i = 0; i < 20; i++) {
-            this.#waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.1, (i & 1) ? 0.01 : -0.01);
+            this.#waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.03, (i & 1) ? 0.01 : -0.01);
         }
 
         // Assign the camera:
