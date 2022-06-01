@@ -759,6 +759,82 @@ shaders.FishGeometryShaderInstanced = class FishGeometryShaderInstanced extends 
   }
 }
 
+shaders.FishShadowShaderInstanced = class FishShadowShaderInstanced extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).transposed()));
+
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+    context.uniform1f(gpu_addresses.wiggleFrequency, 1.15);
+    context.uniform1f(gpu_addresses.wiggleAmplitude, 0.08);
+    context.uniform1f(gpu_addresses.speed, 8.0);
+    context.uniform1f(gpu_addresses.panAmplitude, 0.13);
+    context.uniform1f(gpu_addresses.twistAmplitude, 0.12);
+    context.uniform1f(gpu_addresses.rollAmplitude, 0.15);
+    context.uniform1f(gpu_addresses.rollFrequency, 1.02);
+    context.uniform1f(gpu_addresses.genAmplitude, document.getElementById("sld1").value);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    layout (location = 0) in vec3 position;
+    layout (location = 3) in mat4 modelTransform_1;
+
+    uniform mat4 projView;
+    uniform float time;
+    uniform float wiggleAmplitude;
+    uniform float wiggleFrequency;
+    uniform float speed;
+    uniform float panAmplitude;
+    uniform float twistAmplitude;
+    uniform float rollAmplitude;
+    uniform float rollFrequency;
+    uniform float genAmplitude;
+
+    void main() { 
+      vec3 pos = position;
+
+      float genAmpTimeMult = 1.1 / (genAmplitude);
+
+      float xRot = sin((time + 0.2) * genAmpTimeMult * speed - pow(pos.x + 3.0, rollFrequency)) * pow(pos.x + 3.0, 1.1) * rollAmplitude * genAmplitude;
+      float rotCos = cos(xRot), rotSin = sin(xRot);
+      mat3 xRotMat = mat3(vec3(1, 0, 0), vec3(0, rotCos, rotSin), vec3(0, -rotSin, rotCos));
+      pos = xRotMat * pos;
+
+      float yRot = sin(time * genAmpTimeMult * speed) * twistAmplitude * genAmplitude;
+      rotCos = cos(yRot), rotSin = sin(yRot);
+      mat3 yRotMat = mat3(vec3(rotCos, 0, -rotSin), vec3(0, 1, 0), vec3(rotSin, 0, rotCos));
+      pos.x += 1.5;
+      pos = yRotMat * pos;
+      pos.x -= 1.5;
+
+      pos.z += (1.0 - cos((time + 0.8) * genAmpTimeMult * speed - pow(pos.x + 3.0, wiggleFrequency))) * pow(pos.x + 3.0, 1.1) * wiggleAmplitude * genAmplitude;
+      pos.z += panAmplitude * sin(speed * genAmpTimeMult * time) * genAmplitude;
+
+
+      gl_Position = (projView * modelTransform_1) * vec4( pos, 1.0 );
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    out vec4 FragColor;
+
+    void main() {
+        FragColor = vec4(1,1,1,1);
+    }
+    
+    `;
+  }
+}
+
 shaders.FishShadowShader = class FishShadowShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     context.uniformMatrix4fv(gpu_addresses.projViewCamera, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).times(model_transform).transposed()));

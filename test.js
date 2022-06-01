@@ -138,7 +138,7 @@ export class Test extends Component {
     this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
 
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase(), proj: () => this.sunProj, view: () => this.sunView };
-    this.materials.fishShadow = { shader: new shaders.FishShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.fishShadow = { shader: new shaders.FishShadowShaderInstanced(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
       shader: new shaders.WaterSurfaceShader(),
