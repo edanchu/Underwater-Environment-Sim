@@ -35,7 +35,7 @@ objects.kelpController = class kelpController extends utils.SceneObject {
         this.updateCounter = 0;
 
         for (let i = 0; i < numKelp; i++) {
-            this.kelp.push(new objects.Kelp(vec3((Math.random() - 0.5) * 320, this.boundingBox[1][0] - 10.0, (Math.random() - 0.5) * 320), 15, maxHeight));
+            this.kelp.push(new objects.Kelp(vec3((Math.random() - 0.5) * 320, this.boundingBox[1][0] - 10.0, (Math.random() - 0.5) * 320), 5, maxHeight));
         }
     }
 
@@ -84,7 +84,8 @@ objects.Kelp = class Kelp {
             const scale = 10.0;
             const force = 0.1 * Math.abs(this.maxHeight - x.pos[1]);
             const noise = simplex3D(x.pos[0] / scale, x.pos[1] / scale, x.pos[2] / scale);
-            x.addForce(vec3(force * noise, force * noise, force * noise));
+            const f = vec3(force * noise * 2.0, force * noise, force * noise * 0.5);
+            x.addForce(f);
             x.update(dt);
             this.spline.editPoint(i, x.pos, false);
         });

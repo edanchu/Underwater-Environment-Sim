@@ -109,7 +109,7 @@ export class Test extends Component {
 
     this.sceneObjects.push(new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.translation(0, -84.4, 0).times(Mat4.scale(1, 1, 1)), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow));
 
-    // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
+    this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
   }
 
   createShapes() {

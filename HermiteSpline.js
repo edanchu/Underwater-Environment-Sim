@@ -70,7 +70,7 @@ export
                 this.arrays.position = [];
                 this.arrays.normal = [];
                 this.indices = [];
-                let subdivisions = 15 * (this.controlPoints.length - 1), resolution = 25;
+                let subdivisions = 3 * (this.controlPoints.length - 1), resolution = 5;
                 let pos, nextPos, segment, circ;
                 for (let i = 0; i < subdivisions; i++) {
                     pos = this.getPos(i / subdivisions);
