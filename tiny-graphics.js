@@ -243,17 +243,30 @@ const Shader = tiny.Shader =
             // memory. ---
             for (let [attr_name, attribute] of Object.entries(gpu_instance.gpu_addresses.shader_attributes)) {
                 if (!attribute.enabled) {
-                    if (attribute.index >= 0) context.disableVertexAttribArray(attribute.index);
+                    if (attribute.index >= 0) {
+                        context.disableVertexAttribArray(attribute.index);
+                        if (attr_name.endsWith("_1")) {
+                            context.disableVertexAttribArray(attribute.index + 1);
+                            context.disableVertexAttribArray(attribute.index + 2);
+                            context.disableVertexAttribArray(attribute.index + 3);
+                        }
+                    }
                     continue;
                 }
-                context.enableVertexAttribArray(attribute.index);
-                context.bindBuffer(context.ARRAY_BUFFER, buffer_pointers[attr_name]);    // Activate the correct
-                // buffer.
-                context.vertexAttribPointer(attribute.index, attribute.size, attribute.type,            // Populate each attribute
-                    attribute.normalized, attribute.stride, attribute.pointer);       // from
-                // the
-                // active
-                // buffer.
+                context.bindBuffer(context.ARRAY_BUFFER, buffer_pointers[attr_name]);
+
+                if (attr_name.endsWith("_1")) {
+                    for (let i = 0; i < 4; i++) {
+                        context.enableVertexAttribArray(attribute.index + i);
+                        context.vertexAttribPointer(attribute.index + i, 4, context.FLOAT, attribute.normalized, 64, attribute.pointer + i * 16);
+                        context.vertexAttribDivisor(attribute.index + i, 1);
+                    }
+                }
+                else {
+                    context.enableVertexAttribArray(attribute.index);
+                    context.vertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, attribute.stride, attribute.pointer);
+                    context.vertexAttribDivisor(attribute.index, 0);
+                }
             }
         }                           // Your custom Shader has to override the following functions:
         vertex_glsl_code() { }

@@ -390,7 +390,7 @@ utils.SceneObject = class SceneObject {
         this.shape.draw(context, uniforms, transformOverride, this.material, this.drawType);
     }
 
-    drawShadow(context, uniforms, materialOverride) {
+    drawShadow(context, uniforms) {
         this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
     }
 
@@ -404,43 +404,27 @@ utils.SceneObject = class SceneObject {
 
 }
 
-utils.KelpObject = class KelpObject {
-    constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES", castShadows = true, shadowMaterial = null, clusterVal = 0) {
-        this.shape = shape;
-        this.material = material;
-        this.transform = initTransform;
-        this.drawType = drawType;
-        this.pass = pass;
-        this.id = id;
-        this.castShadows = castShadows;
-        this.shadowMaterial = (shadowMaterial != null) ? shadowMaterial : this.material;
-        this.t = 0;
-        this.clusterVal = clusterVal;
-        console.log(clusterVal);
+utils.BlendShape = class BlendShape extends Shape {
+    constructor(shape1, shape2) {
+        super("position", "normal", "texture_coord", "posi", "nor");
+        this.ready = false;
+        this.shape1 = shape1;
+        this.shape2 = shape2;
     }
 
-    draw(context, uniforms) {
-        this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
+    draw(caller, uniforms, model_transform, material) {
+        if (this.ready == false) {
+            this.ready = this.shape1.ready && this.shape2.ready;
+            if (this.ready) {
+                this.arrays.position = this.shape1.arrays.position;
+                this.arrays.normal = this.shape1.arrays.normal;
+                this.arrays.texture_coord = this.shape1.arrays.texture_coord;
+                this.arrays.posi = this.shape2.arrays.position;
+                this.arrays.nor = this.shape2.arrays.normal;
+                this.indices = this.shape1.indices;
+            }
+        }
+        if (this.ready)
+            super.draw(caller, uniforms, model_transform, material);
     }
-
-    drawOverrideMaterial(context, uniforms, materialOverride) {
-        this.shape.draw(context, uniforms, this.transform, materialOverride, this.drawType);
-    }
-
-    drawOverrideTransform(context, uniforms, transformOverride) {
-        this.shape.draw(context, uniforms, transformOverride, this.material, this.drawType);
-    }
-
-    drawShadow(context, uniforms, materialOverride) {
-        this.shape.draw(context, uniforms, this.transform, this.shadowMaterial, this.drawType);
-    }
-
-    drawShadowOverrideTransform(context, uniforms, transformOverride) {
-        this.shape.draw(context, uniforms, transformOverride, this.shadowMaterial, this.drawType);
-    }
-
-    update(sceneObjects, uniforms, dt) { };
-
-    fixedUpdate(sceneObjects, uniforms, dt) { };
-
 }
