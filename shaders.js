@@ -2426,7 +2426,7 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
 
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
 
-    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld3").value);
   }
 
   shared_glsl_code() {
@@ -2482,13 +2482,26 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
       return 1.0 - cos((x * 3.14159265) / 2.0);
     }
 
+    float ease2(float x){
+      return 1. - pow(1. - x, 3.);
+    }
+
+    float lerp(float a, float b, float percent){
+        return (1.0 - percent) * a + (percent * b);
+    }
+
     void main() {
         ivec2 fragCoord = ivec2(gl_FragCoord.xy);
         vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
         vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
 
         float viewDist = 300.0;
-        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)  /2.0, ease(clamp(length(position - cameraCenter) / viewDist, 0.0, 1.0)));
+        float depth = ease(clamp(length(position - cameraCenter) / viewDist, 0.0, 1.0));
+        float height = lerp(0.0, slider, ease2(clamp(position.y/-85.0 , 0.0, 1.0)));
+
+        float modifier = max(height, depth);
+
+        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)/2.0, modifier);
 
         FragColor = vec4(fog, 1.0);
     }
