@@ -506,7 +506,7 @@ shaders.GeometryShaderTexturedMinimalBlendShape = class GeometryShaderTexturedMi
     uniform float t;
 
     void main() { 
-      vec3 transition = vec3((cos(time * 2.0) + 1.0) / 2.0);
+      vec3 transition = vec3((cos(time * 5.0) + 1.0) / 2.0);
       vec3 pos = mix(position, posi, transition);
       vec3 norm = mix(normal, nor, transition);
 
