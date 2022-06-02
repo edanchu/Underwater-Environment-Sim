@@ -359,6 +359,12 @@ objects.predator = class predator extends utils.SceneObject {
     }
 }
 
+// objects.crab = class crab extends defs.Shape{
+//     constructor(shape1, shape2, material, initTransform){
+//         super(["position", "position1", "normal", "normal1", "tex_coords"])
+//     }
+// }
+
 function getPos(mat) {
     return vec3(mat[0][3], mat[1][3], mat[2][3]);
 }
