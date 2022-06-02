@@ -5,6 +5,7 @@ Proceed to localhost:8000 on your browser
 Enjoy!
 
 Features:
+
 Boids of different fish 
 
 Attraction/repulsion forces from predators
