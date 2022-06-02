@@ -23,11 +23,19 @@ class HermiteSpline extends Shape {
     }
 
     editPoint(index, position, tangent) {
+        const scale = 1 / (this.controlPoints.length - 1);
         if (this.startIndex >= this.controlPoints.length - 1) { console.error("nonexistent control point"); return -1; }
         if (position != false)
             this.controlPoints[index].pos = position;
-        if (tangent != false)
-            this.controlPoints[index].tan = tangent;
+        if(index == 0){
+            this.controlPoints[index].tan = this.controlPoints[index+1].tan;
+        }
+        else if(index == this.controlPoints.length-1){
+            this.controlPoints[index].tan = this.controlPoints[index-1].tan;
+        }
+        else{
+            this.controlPoints[index].tan = this.controlPoints[index+1].pos.minus(this.controlPoints[index-1].pos).times(1/(2*scale));
+        }
         this.meshUpToDate = false;
     }
 

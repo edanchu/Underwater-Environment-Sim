@@ -47,7 +47,7 @@ objects.kelp = class kelp extends utils.KelpObject {
         let timeStep = Math.sin(this.t+this.clusterVal)/60;
 
         for(var i = 0; i < 50; i+=1){
-            let point1 = vec3(this.shape.controlPoints[i].pos[0] += timeStep, this.shape.controlPoints[i].pos[1], this.shape.controlPoints[i].pos[2] += timeStep);
+            let point1 = vec3(this.shape.controlPoints[i].pos[0] += Math.sin(this.t+this.clusterVal+i)/140 , this.shape.controlPoints[i].pos[1], this.shape.controlPoints[i].pos[2] += Math.sin(this.t+this.clusterVal+i)/140);
             this.shape.editPoint(i, point1, false);
         }
     };
