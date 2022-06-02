@@ -359,6 +359,31 @@ objects.predator = class predator extends utils.SceneObject {
     }
 }
 
+objects.crab = class crab extends utils.SceneObject{
+    constructor(object, id, transform, boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
+        super(object.shape, object.material, transform, id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
+
+        this.boundingBox = boundingBox;
+        this.initTransform = object.transform;
+
+        
+    }
+
+    update(sceneObjects, uniforms, dt) {
+       
+
+        this.transform = Mat4.translation(0, 0, 0);
+    }
+
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.material, this.drawType);
+    }
+
+    drawShadow(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.shadowMaterial, this.drawType);
+    }
+}
+
 function getPos(mat) {
     return vec3(mat[0][3], mat[1][3], mat[2][3]);
 }
