@@ -4,8 +4,16 @@ import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
 import { objects } from './objects.js';
+import { HermiteSpline } from './HermiteSpline.js'
 
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
+
+const floor = -85;
+const ceiling = 25;
+const kelp_clusters = 10;
+const kelp_max = 10;
+const kelp_min = 6;
+
 
 export class Test extends Component {
   init() {
@@ -45,7 +53,7 @@ export class Test extends Component {
       }
       this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
     }
-
+    
     this.render(context);
   }
 
@@ -59,7 +67,6 @@ export class Test extends Component {
 
     //deferred geometry
     this.sceneObjects.map((x) => { if (x.pass == "deferred") x.draw(context, this.uniforms) });
-
     //lights
     this.bindLBufferForLights(gl, this.FBOs.lBuffer);
 
@@ -70,7 +77,6 @@ export class Test extends Component {
     //forward pass
     this.prepForForwardPass(gl, this.FBOs.lBuffer, this.FBOs.gBuffer);
     this.sceneObjects.map((x) => { if (x.pass == "forward") x.draw(context, this.uniforms) });
-
     //postprocess
     this.depthFogPass(context);
     this.volumePass(context);
@@ -82,7 +88,11 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
+    //this.kelpObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
+
+    this.sceneObjects.push(new objects.kelpController("kelp", 20, [[-125, 125], [-85, 20], [-125, 125]], { ...this.materials.geometryMaterial, color: vec4(39, 65, 24, 255).times(1 / 255) }, this.materials.basicShadow, 100));
+
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
@@ -123,6 +133,15 @@ export class Test extends Component {
     const crab2 = new defs.Shape_From_File('assets/meshes/crab/crab2.obj');
     this.shapes.crab = new utils.BlendShape(crab1, crab2);
   }
+  createKelp(location) {
+    /* 
+    this.shapes.kelp = new HermiteSpline();
+    for(var i = floor; i <= ceiling; i += ((ceiling-floor)/2))
+      this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));*/
+    this.shapes.kelp = new HermiteSpline();
+    for (var i = floor; i <= ceiling; i += ((ceiling - floor) / 50))
+      this.shapes.kelp.addPoint(vec3(location[0], i, location[2]), vec3(0, 1, 0));
+  }
 
   createMaterials() {
     this.materials = {};
@@ -155,6 +174,7 @@ export class Test extends Component {
       smoothness: 10
     };
 
+    this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };

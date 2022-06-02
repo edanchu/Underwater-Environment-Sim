@@ -404,17 +404,6 @@ utils.SceneObject = class SceneObject {
 
 }
 
-utils.Boid = class Boid {
-    constructor(position, velocity) {
-        this.pos = position.copy();
-        this.v = velocity.copy();
-    }
-
-    update(dt) {
-        this.pos.add_by(this.v.times(dt));
-    }
-}
-
 utils.BlendShape = class BlendShape extends Shape {
     constructor(shape1, shape2) {
         super("position", "normal", "texture_coord", "posi", "nor");
