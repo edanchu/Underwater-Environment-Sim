@@ -70,7 +70,7 @@ export
                 this.arrays.position = [];
                 this.arrays.normal = [];
                 this.indices = [];
-                let subdivisions = 5 * (this.controlPoints.length - 1), resolution = 5;
+                let subdivisions = 15 * (this.controlPoints.length - 1), resolution = 25;
                 let pos, nextPos, segment, circ;
                 for (let i = 0; i < subdivisions; i++) {
                     pos = this.getPos(i / subdivisions);
@@ -166,7 +166,7 @@ export
             }
         }
 
-function getCircle(point, normal, segments, radius = 0.2) {
+function getCircle(point, normal, segments, radius = 0.4) {
     normal = normal.normalized()
     let verts = [], norms = [];
     let v = vec3(0.125, 81.1, 9.2817).normalized();

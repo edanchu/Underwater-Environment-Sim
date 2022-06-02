@@ -24,38 +24,6 @@ objects.trout = class trout extends utils.SceneObject {
     }
 }
 
-// objects.kelp = class kelp extends utils.KelpObject {
-//     draw(context, uniforms) {
-//         this.shape.draw(context, uniforms, this.transform, this.material, this.drawType);
-//     }
-//     update(sceneObjects, uniforms, dt) { 
-//         /*
-//         this.t += dt;
-//         let timeStep = Math.sin(this.t+this.clusterVal)/60;
-//         let point1 = vec3(this.shape.controlPoints[1].pos[0] += timeStep, this.shape.controlPoints[1].pos[1], this.shape.controlPoints[1].pos[2] += timeStep);
-//         let point2 = vec3(this.shape.controlPoints[2].pos[0] += timeStep, this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += timeStep);
-//         this.shape.editPoint(1, point1, false);
-//         this.shape.editPoint(2, point2, false);*/
-
-//         /*
-//         this.t += dt;
-//         let timeStep = Math.sin(this.t+this.clusterVal)/60;
-//         let point1 = vec3(this.shape.controlPoints[1].pos[0] += timeStep, this.shape.controlPoints[1].pos[1], this.shape.controlPoints[1].pos[2] += timeStep);
-//         let point2 = vec3(this.shape.controlPoints[2].pos[0] += (timeStep * 2), this.shape.controlPoints[2].pos[1], this.shape.controlPoints[2].pos[2] += (timeStep * 2));
-//         let tan1 = this.shape.controlPoints[1].pos.minus(point1).times(1/timeStep).plus(this.shape.controlPoints[1].tan);
-//         let tan2 = this.shape.controlPoints[2].pos.minus(point2).times(1/timeStep).plus(this.shape.controlPoints[2].tan);
-//         this.shape.editPoint(1, point1, tan1);
-//         this.shape.editPoint(2, point2, tan2);*/
-//         this.t += dt;
-//         let timeStep = Math.sin(this.t+this.clusterVal)/60;
-
-//         for(var i = 0; i < 50; i+=1){
-//             let point1 = vec3(this.shape.controlPoints[i].pos[0] += Math.sin(this.t+this.clusterVal+i)/140 , this.shape.controlPoints[i].pos[1], this.shape.controlPoints[i].pos[2] += Math.sin(this.t+this.clusterVal+i)/140);
-//             this.shape.editPoint(i, point1, false);
-//         }
-//     };
-// }
-
 objects.kelpController = class kelpController extends utils.SceneObject {
     constructor(id, maxHeight, boundingBox, material, shadowMaterial, numKelp = 10) {
         super(null, material, Mat4.identity(), id, "deferred", "TRIANGLE_STRIP", true, shadowMaterial);
@@ -65,13 +33,19 @@ objects.kelpController = class kelpController extends utils.SceneObject {
         this.boundingBox = boundingBox;
         this.kelp = [];
 
+        this.updateCounter = 0;
+
         for (let i = 0; i < numKelp; i++) {
-            this.kelp.push(new objects.Kelp(vec3((Math.random() - 0.5) * 60, this.boundingBox[1][0], (Math.random() - 0.5) * 60), 5, maxHeight));
+            this.kelp.push(new objects.Kelp(vec3((Math.random() - 0.5) * 320, this.boundingBox[1][0] - 10.0, (Math.random() - 0.5) * 320), 15, maxHeight));
         }
     }
 
     update(sceneObjects, uniforms, dt) {
-        this.kelp.map((x) => x.update(sceneObjects, uniforms, dt));
+        if (this.updateCounter > -1) {
+            this.kelp.map((x) => x.update(sceneObjects, uniforms, dt));
+            this.updateCounter = 0;
+        }
+        this.updateCounter++;
     }
 
     draw(context, uniforms) {
@@ -97,18 +71,19 @@ objects.Kelp = class Kelp {
         this.spline.controlPoints.map((x, i) => {
             this.particles.push(new Particle(1, x.pos, "symplectic", i == 0 ? true : false));
             if (i > 0)
-                this.springs.push(new VeElement(this.particles[i - 1], this.particles[i], 20, -1, 5));
+                this.springs.push(new VeElement(this.particles[i - 1], this.particles[i], 15, -1, 5));
         });
 
 
     }
 
     update(sceneObjects, uniforms, dt) {
+        dt = Math.min(dt, 0.01);
         this.springs.map((x) => x.applyForce());
         this.particles.map((x, i) => {
             x.addAcceleration(vec3(0, 4, 0));
             const scale = 10.0;
-            const force = 0.05 * Math.abs(this.maxHeight - x.pos[1]);
+            const force = 0.1 * Math.abs(this.maxHeight - x.pos[1]);
             const noise = simplex3D(x.pos[0] / scale, x.pos[1] / scale, x.pos[2] / scale);
             x.addForce(vec3(force * noise, force * noise, force * noise));
             x.update(dt);
