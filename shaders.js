@@ -476,8 +476,6 @@ shaders.GeometryShaderTexturedMinimalBlendShape = class GeometryShaderTexturedMi
     context.uniform1f(gpu_addresses.roughness, material.roughness);
     context.uniform1f(gpu_addresses.ambient, material.ambient);
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
-
-    context.uniform1f(gpu_addresses.t, material.t);
   }
 
   shared_glsl_code() {
@@ -1971,6 +1969,47 @@ shaders.ShadowShaderBase = class ShadowShaderBase extends tiny.Shader {
 
     void main() { 
       gl_Position = projViewCamera * vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    out vec4 FragColor;
+
+    void main(){
+      FragColor = vec4(1,1,1,1);
+    }
+    `;
+  }
+}
+
+shaders.ShadowShaderBlendShape = class ShadowShaderBlendShape extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    context.uniformMatrix4fv(gpu_addresses.projViewCamera, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).times(model_transform).transposed()));
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;
+    in vec3 posi;
+
+    uniform mat4 projViewCamera;
+    uniform float time;
+
+    void main() { 
+      vec3 transition = vec3((cos(time * 5.0) + 1.0) / 2.0);
+      vec3 pos = mix(position, posi, transition);
+
+      gl_Position = projViewCamera * vec4(pos, 1.0);
     }`;
   }
 

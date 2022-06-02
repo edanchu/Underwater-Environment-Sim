@@ -101,7 +101,7 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
 
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.translation(95, 0, 95).times(Mat4.scale(1, 1, 1)), "crab", "deferred", "TRIANGLES", false, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.translation(0, -84.4, 0).times(Mat4.scale(1, 1, 1)), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow));
   }
 
   createShapes() {
@@ -136,6 +136,7 @@ export class Test extends Component {
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.fishShadow = { shader: new shaders.FishShadowShaderInstanced(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sharkShadow = { shader: new shaders.SharkShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.crabShadow = { shader: new shaders.ShadowShaderBlendShape(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
       shader: new shaders.WaterSurfaceShader(),
@@ -156,7 +157,7 @@ export class Test extends Component {
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout4 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish4, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.SharkGeometryShader(), texAlbedo: this.textures.shark, roughness: 0.8, metallic: 0.35, ambient: 2.0 };
-    this.materials.crab = { shader: new shaders.GeometryShaderTexturedMinimalBlendShape(), t: 1.0, texAlbedo: this.textures.crab, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.crab = { shader: new shaders.GeometryShaderTexturedMinimalBlendShape(), t: 1.0, texAlbedo: this.textures.crab, roughness: 0.9, metallic: 0.15, ambient: 1.0 };
   }
 
   createTextures() {
@@ -167,7 +168,7 @@ export class Test extends Component {
     this.textures.fish2 = new Texture('assets/meshes/trout/trout2.png');
     this.textures.fish3 = new Texture('assets/meshes/trout/trout3.png');
     this.textures.fish4 = new Texture('assets/meshes/trout/trout4.png');
-    this.textures.crab = new Texture('assets/meshes/crab/crab_albedo.png');
+    this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
     this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
   }
 
