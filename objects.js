@@ -6,6 +6,7 @@ import Particle from './Particle.js';
 import HermiteSpline from './HermiteSpline.js';
 import VeElement from './VeElement.js';
 import { simplex2D, simplex3D } from './simplex.js';
+import { Hermite_Spline } from './spline2.js';
 
 const { vec3, vec4, color, Mat4, Matrix, Shape, Shader, Texture, Component } = tiny;
 
@@ -424,6 +425,54 @@ objects.predator = class predator extends utils.SceneObject {
             zFactor = 1;
 
         this.particle.addForce(vec3(xFactor * avoidanceForce, yFactor * avoidanceForce, zFactor * avoidanceForce));
+    }
+
+    draw(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.material, this.drawType);
+    }
+
+    drawShadow(context, uniforms) {
+        this.shape.draw(context, uniforms, this.transform.times(this.initTransform), this.shadowMaterial, this.drawType);
+    }
+}
+
+objects.crab = class crab extends utils.SceneObject{
+    constructor(object, id, transform, boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
+        super(object.shape, object.material, transform, id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
+
+        this.boundingBox = boundingBox;
+        this.initTransform = object.transform;
+
+        this.spline = new Hermite_Spline();
+        this.spline_2 = new Hermite_Spline();
+        this.sample_cnt = 1000;
+        this.spline_is_drawn = false;
+        
+        this.current_spline = this.spline;
+        
+        
+    }
+
+    update(sceneObjects, uniforms, dt) {
+        
+        if(!this.spline_is_drawn){
+            this.spline_is_drawn = true;
+            // this.spline.add_point(0, -84.4, 0, -10, 0, 10);
+            // this.spline.add_point(4, -84.4, 4, 10, 0, 10); 
+            // this.spline.add_point(5.6, -84.4, 2.5, 10, 0, 10);
+            // this.spline.add_point(8, -84.4, 4, 0, 0, 0); 
+
+            // this.spline.add_point(8, -84.4, 4, 0, 0, 0);
+            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+            this.spline.add_point(0, -84.4, 10, 0, 0, 0); 
+            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+
+        }
+        
+        this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1));
+
+        
     }
 
     draw(context, uniforms) {
