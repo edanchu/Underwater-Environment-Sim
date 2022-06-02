@@ -441,13 +441,14 @@ objects.crab = class crab extends utils.SceneObject{
 
         this.boundingBox = boundingBox;
         this.initTransform = object.transform;
-
         this.spline = new Hermite_Spline();
         this.spline_2 = new Hermite_Spline();
         this.sample_cnt = 1000;
         this.spline_is_drawn = false;
-        
-        this.current_spline = this.spline;
+        this.A = vec3(0, 0, 1);
+        this.current_spline = this.spline;//randomly select spline?
+        this.crab_position = getPos(this.transform);
+       
         
         
     }
@@ -463,12 +464,22 @@ objects.crab = class crab extends utils.SceneObject{
 
             // this.spline.add_point(8, -84.4, 4, 0, 0, 0);
             // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
-            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
-            this.spline.add_point(0, -84.4, 10, 0, 0, 0); 
-            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+
+            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+            // this.spline.add_point(0, -84.4, 10, 0, 0, 0); 
+            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+
+            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
+            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2] + 10, 0, 0, 0); 
+            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
 
         }
+        // let current_pos = this.current_spline.get_position((uniforms.animation_time/10000)%1);
+        // let next_pos = this.current_spline.get_position(((uniforms.animation_time/10000) + 0.01)%1);
+        // let B = next_pos.minus(current_pos);
+        // let theta = Math.acos((this.A.dot(B)).normalized);
         
+        // this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1)).times(Mat4.rotation(theta, 0, 1, 0));
         this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1));
 
         

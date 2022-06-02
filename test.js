@@ -107,13 +107,33 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
 
-    //this.sceneObjects.push(new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.translation(0, -84.4, 0).times(Mat4.scale(1, 1, 1)), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow));
 
     // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
 
 
     const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
-    this.sceneObjects.push(new objects.crab(crab, "crab", Mat4.translation(0, -84.4, 0), sceneBounds)); 
+    let crab_x_saturation_factor = 1;
+    let crab_z_saturation_factor = 1;
+    
+    this.crab_num = (Math.random() * 7) + 3;
+    for(this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++){//fix this.crab_num 
+      
+      if(Math.random() > 0.5){
+        crab_x_saturation_factor = -1;
+      }
+      else{
+        crab_x_saturation_factor = 1;
+      }
+      if(Math.random() > 0.5){
+        crab_z_saturation_factor = -1;
+      }
+      else{
+        crab_z_saturation_factor = 1;
+      }
+      
+      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor), sceneBounds));
+      
+    }
   }
 
   createShapes() {
