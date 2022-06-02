@@ -97,6 +97,85 @@ objects.Kelp = class Kelp {
     }
 }
 
+objects.instancedKelpController = class instancedKelpController extends utils.SceneObject {
+    constructor(object, id, numKelp = 10) {
+        super(object.shape, object.material, object.transform, id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
+
+        this.kelpObject = object;
+        this.numKelp = numKelp;
+
+        const genOffsets = [];
+
+        for (let i = 0; i < numKelp * 2; i++) {
+            genOffsets.push((Math.random() - 0.5) * 850, (Math.random() - 0.5) * 850);
+        }
+
+        this.offsets = new Float32Array(genOffsets);
+
+        this.gpuInstances = new Map();
+    }
+
+    draw(context, uniforms, sceneObjects) {
+        const gl = context.context;
+
+        if (this.kelpObject.shape.ready) {
+
+            const gpuInstance = this.copy_onto_graphics_card(context.context);
+            this.material.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, this.transform, this.material);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
+            gl.drawElementsInstanced(gl[this.kelpObject.drawType], this.kelpObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numKelp);
+        }
+    }
+
+    drawShadow(context, uniforms) {
+        const gl = context.context;
+
+        if (this.kelpObject.shape.ready) {
+
+            const gpuInstance = this.copy_onto_graphics_card(context.context);
+            this.shadowMaterial.shader.activate(context.context, gpuInstance.webGL_buffer_pointers, uniforms, this.transform, this.shadowMaterial);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpuInstance.index_buffer);
+            gl.drawElementsInstanced(gl[this.kelpObject.drawType], this.kelpObject.shape.indices.length, gl.UNSIGNED_INT, 0, this.numKelp);
+        }
+    }
+
+    copy_onto_graphics_card(context) {
+        const defaults = { webGL_buffer_pointers: {} };
+
+        const existing_instance = this.gpuInstances.get(context);
+
+        const gpu_instance = existing_instance || this.gpuInstances.set(context, defaults).get(context);
+
+        const gl = context;
+
+        if (!existing_instance) {
+            gpu_instance.webGL_buffer_pointers["position"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["position"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.kelpObject.shape.arrays["position"]), gl.STATIC_DRAW);
+
+            gpu_instance.webGL_buffer_pointers["normal"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["normal"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.kelpObject.shape.arrays["normal"]), gl.STATIC_DRAW);
+
+            gpu_instance.webGL_buffer_pointers["texture_coord"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["texture_coord"]);
+            gl.bufferData(gl.ARRAY_BUFFER, Matrix.flatten_2D_to_1D(this.kelpObject.shape.arrays["texture_coord"]), gl.STATIC_DRAW);
+
+            gpu_instance.index_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu_instance.index_buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(this.kelpObject.shape.indices), gl.STATIC_DRAW);
+
+            gpu_instance.webGL_buffer_pointers["offset_1"] = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, gpu_instance.webGL_buffer_pointers["offset_1"]);
+            gl.bufferData(gl.ARRAY_BUFFER, this.offsets, gl.STATIC_DRAW);
+        }
+
+        return gpu_instance;
+    }
+}
+
 objects.boidsController = class boidsController extends utils.SceneObject {
     constructor(object, id, numSchools = 10, boidsPerSchool = 20, center = vec3(0, 0, 0), boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
         super(object.shape, object.material, Mat4.identity(), id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
@@ -436,7 +515,7 @@ objects.predator = class predator extends utils.SceneObject {
     }
 }
 
-objects.crab = class crab extends utils.SceneObject{
+objects.crab = class crab extends utils.SceneObject {
     constructor(object, id, transform, boundingBox = [[-75, 75], [-15, 30], [-75, 75]]) {
         super(object.shape, object.material, transform, id, object.pass, object.drawType, object.castShadows, object.shadowMaterial);
 
@@ -449,14 +528,14 @@ objects.crab = class crab extends utils.SceneObject{
         this.A = vec3(0, 0, 1);
         this.current_spline = this.spline;//randomly select spline?
         this.crab_position = getPos(this.transform);
-       
-        
-        
+
+
+
     }
 
     update(sceneObjects, uniforms, dt) {
-        
-        if(!this.spline_is_drawn){
+
+        if (!this.spline_is_drawn) {
             this.spline_is_drawn = true;
             // this.spline.add_point(0, -84.4, 0, -10, 0, 10);
             // this.spline.add_point(4, -84.4, 4, 10, 0, 10); 
@@ -471,7 +550,7 @@ objects.crab = class crab extends utils.SceneObject{
             // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
 
             this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
-            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2] + 10, 0, 0, 0); 
+            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2] + 10, 0, 0, 0);
             this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
 
         }
@@ -479,11 +558,11 @@ objects.crab = class crab extends utils.SceneObject{
         // let next_pos = this.current_spline.get_position(((uniforms.animation_time/10000) + 0.01)%1);
         // let B = next_pos.minus(current_pos);
         // let theta = Math.acos((this.A.dot(B)).normalized);
-        
-        // this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1)).times(Mat4.rotation(theta, 0, 1, 0));
-        this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1));
 
-        
+        // this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1)).times(Mat4.rotation(theta, 0, 1, 0));
+        this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time / 10000) % 1));
+
+
     }
 
     draw(context, uniforms) {

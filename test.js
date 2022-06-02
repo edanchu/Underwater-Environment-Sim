@@ -31,7 +31,7 @@ export class Test extends Component {
     this.paused = false;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 5.0, 1)];
   }
 
   render_animation(context) {
@@ -108,32 +108,35 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
 
 
-    this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
+    // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
     // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
 
+
+    const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(15, 25, 15)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 850));
 
     const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
     let crab_x_saturation_factor = 1;
     let crab_z_saturation_factor = 1;
-    
+
     this.crab_num = (Math.random() * 7) + 3;
-    for(this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++){//fix this.crab_num 
-      
-      if(Math.random() > 0.5){
+    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) {//fix this.crab_num 
+
+      if (Math.random() > 0.5) {
         crab_x_saturation_factor = -1;
       }
-      else{
+      else {
         crab_x_saturation_factor = 1;
       }
-      if(Math.random() > 0.5){
+      if (Math.random() > 0.5) {
         crab_z_saturation_factor = -1;
       }
-      else{
+      else {
         crab_z_saturation_factor = 1;
       }
-      
+
       this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor), sceneBounds));
-      
+
     }
   }
 
@@ -151,6 +154,8 @@ export class Test extends Component {
     const crab1 = new defs.Shape_From_File('assets/meshes/crab/crab1.obj');
     const crab2 = new defs.Shape_From_File('assets/meshes/crab/crab2.obj');
     this.shapes.crab = new utils.BlendShape(crab1, crab2);
+
+    this.shapes.kelp = new defs.Shape_From_File('assets/meshes/kelp/kelp.obj');
   }
 
   createMaterials() {
@@ -185,6 +190,8 @@ export class Test extends Component {
     };
 
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
@@ -204,6 +211,7 @@ export class Test extends Component {
     this.textures.fish4 = new Texture('assets/meshes/trout/trout4.png');
     this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
     this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
+    this.textures.kelp = new Texture('/assets/meshes/kelp/kelpAlbedo.jpg');
   }
 
   firstTimeSetup(context) {
