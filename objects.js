@@ -3,6 +3,7 @@ import { Quaternion, quat } from './Quaternion.js';
 import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import Particle from './Particle.js';
+import { Hermite_Spline } from './spline2.js';
 
 const { vec3, vec4, color, Mat4, Matrix, Shape, Shader, Texture, Component } = tiny;
 
@@ -366,13 +367,36 @@ objects.crab = class crab extends utils.SceneObject{
         this.boundingBox = boundingBox;
         this.initTransform = object.transform;
 
+        this.spline = new Hermite_Spline();
+        this.spline_2 = new Hermite_Spline();
+        this.sample_cnt = 1000;
+        this.spline_is_drawn = false;
+        
+        this.current_spline = this.spline;
+        
         
     }
 
     update(sceneObjects, uniforms, dt) {
-       
+        
+        if(!this.spline_is_drawn){
+            this.spline_is_drawn = true;
+            // this.spline.add_point(0, -84.4, 0, -10, 0, 10);
+            // this.spline.add_point(4, -84.4, 4, 10, 0, 10); 
+            // this.spline.add_point(5.6, -84.4, 2.5, 10, 0, 10);
+            // this.spline.add_point(8, -84.4, 4, 0, 0, 0); 
 
-        this.transform = Mat4.translation(0, 0, 0);
+            // this.spline.add_point(8, -84.4, 4, 0, 0, 0);
+            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+            this.spline.add_point(0, -84.4, 10, 0, 0, 0); 
+            this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+
+        }
+        
+        this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1));
+
+        
     }
 
     draw(context, uniforms) {

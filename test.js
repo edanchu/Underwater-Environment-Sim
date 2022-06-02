@@ -101,8 +101,9 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
 
-
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.translation(0, -84.4, 0).times(Mat4.scale(1, 1, 1)), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow));
+    const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
+    this.sceneObjects.push(new objects.crab(crab, "crab", Mat4.translation(0, -84.4, 0), sceneBounds)); 
+    
 
 
   }
