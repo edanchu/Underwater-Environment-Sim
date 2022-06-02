@@ -108,6 +108,7 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
 
 
+    this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
     // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
 
 
