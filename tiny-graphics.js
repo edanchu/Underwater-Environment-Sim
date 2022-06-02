@@ -265,6 +265,7 @@ const Shader = tiny.Shader =
                 else {
                     context.enableVertexAttribArray(attribute.index);
                     context.vertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, attribute.stride, attribute.pointer);
+                    context.vertexAttribDivisor(attribute.index, 0);
                 }
             }
         }                           // Your custom Shader has to override the following functions:

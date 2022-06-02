@@ -462,6 +462,90 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
   }
 }
 
+shaders.GeometryShaderTexturedMinimalBlendShape = class GeometryShaderTexturedMinimalBlendShape extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.normalMatrix, false, Matrix.flatten_2D_to_1D(Mat4.inverse(model_transform)));
+
+    material.texAlbedo.activate(context, 1);
+    context.uniform1i(gpu_addresses.texAlbedo, 1);
+
+    context.uniform1f(gpu_addresses.metallic, material.metallic);
+    context.uniform1f(gpu_addresses.roughness, material.roughness);
+    context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    layout (location = 0) in vec3 position;  
+    layout (location = 1) in vec3 normal;
+    layout (location = 2) in vec2 texture_coord;
+    layout (location = 3) in vec3 posi;
+    layout (location = 4) in vec3 nor;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+
+    uniform mat4 projection_camera_model_transform;
+    uniform mat4 modelTransform;
+    uniform mat4 normalMatrix;
+    uniform float time;
+    uniform float t;
+
+    void main() { 
+      vec3 transition = vec3((cos(time * 5.0) + 1.0) / 2.0);
+      vec3 pos = mix(position, posi, transition);
+      vec3 norm = mix(normal, nor, transition);
+
+      gl_Position = projection_camera_model_transform * vec4( pos, 1.0 );
+      vPos = (modelTransform * vec4(pos, 1.0)).xyz;
+      vNorm = normalize(mat3(normalMatrix) * normal);
+      vUV = texture_coord;
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    layout(location = 0) out vec4 FragPosition;
+    layout(location = 1) out vec4 FragNormal;
+    layout(location = 2) out vec4 FragAlbedo;
+    layout(location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec2 vUV;
+
+    uniform sampler2D texAlbedo;
+    uniform float metallic;
+    uniform float roughness;
+    uniform float ambient;
+
+    uniform vec3 cameraCenter;
+
+    void main() {
+        vec3 albedo = texture(texAlbedo, vUV).rgb;
+
+        FragPosition = vec4(vPos, 1.0);
+        FragNormal = vec4(normalize(vNorm), 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz, vec3(2.2)), 1.0);
+        FragSpecular = vec4(roughness, ambient, 1.0, metallic);
+    }
+    
+    `;
+  }
+}
+
 shaders.GeometryShaderTexturedMinimalInstanced = class GeometryShaderTexturedMinimalInstanced extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PC = P.times(C);
@@ -1885,6 +1969,47 @@ shaders.ShadowShaderBase = class ShadowShaderBase extends tiny.Shader {
 
     void main() { 
       gl_Position = projViewCamera * vec4(position, 1.0);
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    out vec4 FragColor;
+
+    void main(){
+      FragColor = vec4(1,1,1,1);
+    }
+    `;
+  }
+}
+
+shaders.ShadowShaderBlendShape = class ShadowShaderBlendShape extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    context.uniformMatrix4fv(gpu_addresses.projViewCamera, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).times(model_transform).transposed()));
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;
+    in vec3 posi;
+
+    uniform mat4 projViewCamera;
+    uniform float time;
+
+    void main() { 
+      vec3 transition = vec3((cos(time * 5.0) + 1.0) / 2.0);
+      vec3 pos = mix(position, posi, transition);
+
+      gl_Position = projViewCamera * vec4(pos, 1.0);
     }`;
   }
 

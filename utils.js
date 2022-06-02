@@ -414,3 +414,28 @@ utils.Boid = class Boid {
         this.pos.add_by(this.v.times(dt));
     }
 }
+
+utils.BlendShape = class BlendShape extends Shape {
+    constructor(shape1, shape2) {
+        super("position", "normal", "texture_coord", "posi", "nor");
+        this.ready = false;
+        this.shape1 = shape1;
+        this.shape2 = shape2;
+    }
+
+    draw(caller, uniforms, model_transform, material) {
+        if (this.ready == false) {
+            this.ready = this.shape1.ready && this.shape2.ready;
+            if (this.ready) {
+                this.arrays.position = this.shape1.arrays.position;
+                this.arrays.normal = this.shape1.arrays.normal;
+                this.arrays.texture_coord = this.shape1.arrays.texture_coord;
+                this.arrays.posi = this.shape2.arrays.position;
+                this.arrays.nor = this.shape2.arrays.normal;
+                this.indices = this.shape1.indices;
+            }
+        }
+        if (this.ready)
+            super.draw(caller, uniforms, model_transform, material);
+    }
+}
