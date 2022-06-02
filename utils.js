@@ -404,7 +404,7 @@ utils.SceneObject = class SceneObject {
 
 }
 
-utils.KelpObject = class KelpObject{
+utils.KelpObject = class KelpObject {
     constructor(shape, material, initTransform, id, pass = "deferred", drawType = "TRIANGLES", castShadows = true, shadowMaterial = null, clusterVal = 0) {
         this.shape = shape;
         this.material = material;
@@ -443,15 +443,4 @@ utils.KelpObject = class KelpObject{
 
     fixedUpdate(sceneObjects, uniforms, dt) { };
 
-}
-
-utils.Boid = class Boid {
-    constructor(position, velocity) {
-        this.pos = position.copy();
-        this.v = velocity.copy();
-    }
-
-    update(dt) {
-        this.pos.add_by(this.v.times(dt));
-    }
 }

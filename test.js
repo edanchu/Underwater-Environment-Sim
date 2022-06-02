@@ -35,7 +35,7 @@ export class Test extends Component {
   render_animation(context) {
     const gl = context.context;
     if (this.textures.HDRI.ready != true) return;
-    
+
     if (!context.controls /*checks if first animated frame*/) {
       this.firstTimeSetup(context);
     }
@@ -87,37 +87,15 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     //this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0,floor,0).times(Mat4.scale(100, .01, 100)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(0, floor, 0).times(Mat4.scale(100, .01, 100)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
     // this.sceneObjects.push(new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, this.materials.geometryMaterial, Mat4.translation(-10, 0, 0).times(Mat4.scale(3, 3, 3)), "ball", "deferred", "TRIANGLES", true, this.materials.basicShadow));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.translation(-30, 0, 0).times(Mat4.scale(5, 5, 5)), "shark", "deferred", "TRIANGLES", true, this.materials.basicShadow));
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    
-    
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+
+
+
 
     //THIS WILL CAUSE LAG IF YOU UNCOMMENT IT
     //IN createKelp UNCOMMENT THE COMMENT OUT PORTION AND COMMENT THE OTHER ONE IF YOU WANT IT TO NOT LAG
@@ -133,9 +111,35 @@ export class Test extends Component {
         this.sceneObjects.push(kelp);
       }
     }*/
-    this.createKelp(vec3(0,0,0));
-    const kelp = new objects.kelp(this.shapes.kelp, this.materials.kelp, Mat4.identity(), "kelp", "deferred", "TRIANGLE_STRIP", false,null, 1);
-    this.sceneObjects.push(kelp);
+    // this.createKelp(vec3(0,0,0));
+    // const kelp = new objects.kelp(this.shapes.kelp, this.materials.kelp, Mat4.identity(), "kelp", "deferred", "TRIANGLE_STRIP", false,null, 1);
+    // this.sceneObjects.push(kelp);
+
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 20, vec3((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60)));
+
+    this.sceneObjects.push(new objects.kelpController("kelp", 20, [[-125, 125], [-85, 20], [-125, 125]], { ...this.materials.geometryMaterial, color: vec4(39, 65, 24, 255).times(1 / 255) }, this.materials.basicShadow, 100));
 
   }
 
@@ -157,8 +161,8 @@ export class Test extends Component {
     for(var i = floor; i <= ceiling; i += ((ceiling-floor)/2))
       this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));*/
     this.shapes.kelp = new HermiteSpline();
-    for(var i = floor; i <= ceiling; i += ((ceiling-floor)/50))
-      this.shapes.kelp.addPoint(vec3(location[0],i,location[2]), vec3(0,1,0));
+    for (var i = floor; i <= ceiling; i += ((ceiling - floor) / 50))
+      this.shapes.kelp.addPoint(vec3(location[0], i, location[2]), vec3(0, 1, 0));
   }
 
   createMaterials() {
@@ -193,7 +197,7 @@ export class Test extends Component {
     this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
     this.materials.trout = { shader: new shaders.FishGeometryShader(), texAlbedo: new Texture('assets/meshes/trout/troutAlbedo.png'), roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.GeometryShaderTexturedMinimal(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
-    this.materials.kelp =  { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
   }
 
   createTextures() {
