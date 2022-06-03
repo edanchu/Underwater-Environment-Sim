@@ -90,11 +90,13 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
     thrust = vec3(0, 0, 0);
     pos = vec3(0, 0, 0);
     z_axis = vec3(0, 0, 0);
+    towards = vec3(0, 0, 0);
     radians_per_frame = 1 / 200;
     meters_per_frame = 20;
     speed_multiplier = 1;
     mouse_enabled_canvases = new Set();
     will_take_over_uniforms = true;
+    feed = false;
 
     set_recipient(matrix_closure, inverse_closure) {
         this.matrix = matrix_closure;
@@ -151,6 +153,10 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
             document.body.ownerDocument.removeEventListener('mousemove', this.first_person_flyaround);
         },
             "green");
+        
+        this.key_triggered_button("drop food", ["p"], () => {
+            this.feed = true;
+        }, "green");
 
         this.new_line();
         this.live_string(box => box.textContent = "" + 1 / (this.uniforms.animation_delta_time / 1000));
@@ -199,7 +205,8 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
 
         // Log some values:
         this.pos = this.matrix().times(vec4(0, 0, 0, 1)).to3();
-        this.z_axis = this.inverse().times(vec4(0, 0, 1, 0));
+        this.z_axis = this.inverse().times(vec4(0, 0, 1, 0)).to3();
+        this.towards = this.matrix().times(vec4(0, 0, 1, 0)).to3();
     }
 }
 

@@ -38,9 +38,9 @@ export class Test extends Component {
       lightPosition: vec3(2, 2, 2),
     };
 
-    for (var i = 0; i < 20; i++) {
-      this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
-    }
+    // for (var i = 0; i < 20; i++) {
+    //   this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
+    // }
 
     this.whenToDistort = 0;
   }
@@ -69,6 +69,20 @@ export class Test extends Component {
   render(context) {
     const gl = context.context;
 
+    let ray_org = context.controls.pos;
+    let ray_dir = context.controls.towards;
+
+    // need to intersect the xz plane:
+    const ray_t       = (20 - ray_org[1]) / ray_dir[1];
+    const plane_point = ray_org.plus(ray_dir.times(ray_t));
+
+    const local_ray_t = -(ray_org[1] - 20) / ray_dir[1];
+    const local_plane_point = vec3(ray_org[0], ray_org[1] - 20, ray_org[2]).plus(ray_dir.times(local_ray_t));
+
+    // Now we need to normalize the point within the 300 range:
+    const plane_point_x = clamp(-1, (local_plane_point[0] / this.planeSize / 2), 1);
+    const plane_point_z = clamp(-1, (local_plane_point[2] / this.planeSize / 2), 1);
+
     // Step the water simulation:
     this.waterSim.step(gl);
     this.waterSim.step(gl);
@@ -79,11 +93,21 @@ export class Test extends Component {
 
     this.whenToDistort += 1;
 
-    if (this.whenToDistort % 256 === 0) {
-      for (var i = 0; i < 20; i++) {
-        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
-      }
+    if (context.controls.feed) {
+      console.log(plane_point_x, plane_point_z);
+      this.waterSim.drop(gl, plane_point_x, plane_point_z, 0.2, 0.05);
+
+      const transform = Mat4.translation(plane_point[0], plane_point[1], plane_point[2]).times(Mat4.scale(0.2, 0.4, 0.2));
+      this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, { shader: new shaders.GeometryShader(), color: vec4(1, 1, 0, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) }, transform, "bait"));
+
+      context.controls.feed = false;
     }
+
+    // if (this.whenToDistort % 256 === 0) {
+    //   for (var i = 0; i < 20; i++) {
+    //     this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
+    //   }
+    // }
 
     //draw light depth buffer for sun shadows
     this.drawSunShadows(context);
@@ -616,4 +640,8 @@ export class Test extends Component {
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
   }
+}
+
+function clamp(x, y, z) {
+  return Math.min(Math.max(x, y), z);
 }

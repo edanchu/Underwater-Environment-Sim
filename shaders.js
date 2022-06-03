@@ -335,12 +335,12 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       out vec2 texCoord;
 
       void main() {
-        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
+        texCoord = texture_coord; // + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
 
         // Distort the position:
-        // vec4 particle = texture(particles, texCoord);
-        // vec3 newPos   = position;
-        // newPos.y     += particle.r;
+        vec4 particle = texture(particles, texCoord);
+        vec3 newPos   = position;
+        newPos.y     += particle.r;
 
         vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
 
@@ -406,7 +406,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         if (normal == vec3(0.0, 1.0, 0.0)) {
             normal = textNormal;
         } else {
-            normal = mix(normal, textNormal, vec3(0.3));
+            normal = mix(normal, textNormal, 0.3);
         }
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
