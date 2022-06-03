@@ -433,7 +433,7 @@ objects.predator = class predator extends utils.SceneObject {
 
         this.huntForce(0.3, 80, sceneObjects);
         this.centerForce(0.002);
-        this.avoidWalls(50, 20);
+        this.avoidWalls(150, 20);
         this.avoidPredators(1.0, 80, sceneObjects);
         this.limitVelocity(15);
 

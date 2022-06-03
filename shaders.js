@@ -398,6 +398,8 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
     context.uniform1f(gpu_addresses.roughness, material.roughness);
     context.uniform1f(gpu_addresses.ambient, material.ambient);
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform1f(gpu_addresses.tiling, material.tiling ? material.tiling : 1);
   }
 
   shared_glsl_code() {
@@ -448,13 +450,121 @@ shaders.GeometryShaderTexturedMinimal = class GeometryShaderTexturedMinimal exte
 
     uniform vec3 cameraCenter;
 
+    uniform float tiling;
+
     void main() {
-        vec3 albedo = texture(texAlbedo, vUV).rgb;
+        vec3 albedo = texture(texAlbedo, vUV * tiling).rgb;
 
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
         FragAlbedo = vec4(pow(albedo.xyz, vec3(2.2)), 1.0);
         FragSpecular = vec4(roughness, ambient, 1.0, metallic);
+    }
+    
+    `;
+  }
+}
+
+shaders.SandGeometryShader = class SandGeometryShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera_model_transform, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.normalMatrix, false, Matrix.flatten_2D_to_1D(Mat4.inverse(model_transform)));
+
+    material.texAlbedo.activate(context, 1);
+    context.uniform1i(gpu_addresses.texAlbedo, 1);
+
+    context.uniform1f(gpu_addresses.metallic, material.metallic);
+    context.uniform1f(gpu_addresses.roughness, material.roughness);
+    context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform1f(gpu_addresses.tiling, material.tiling ? material.tiling : 1);
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld1").value);
+
+    context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+    in vec3 normal;
+    in vec2 texture_coord;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+
+    uniform mat4 projection_camera_model_transform;
+    uniform mat4 modelTransform;
+    uniform mat4 normalMatrix;
+    uniform float time;
+
+    void main() { 
+      gl_Position = projection_camera_model_transform * vec4( position, 1.0 );
+      vPos = (modelTransform * vec4(position, 1.0)).xyz;
+      vNorm = normalize(mat3(normalMatrix) * normal);
+      vUV = texture_coord;
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    layout(location = 0) out vec4 FragPosition;
+    layout(location = 1) out vec4 FragNormal;
+    layout(location = 2) out vec4 FragAlbedo;
+    layout(location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec2 vUV;
+
+    uniform sampler2D texAlbedo;
+    uniform float metallic;
+    uniform float roughness;
+    uniform float ambient;
+
+    uniform vec3 cameraCenter;
+
+    uniform float tiling;
+    uniform float slider;
+
+    float random (vec2 value){
+      return fract(sin(dot(value, vec2(94.8365, 47.053))) * 94762.9342);
+    }
+
+    vec3 nlerp(vec3 in1, vec3 in2, float t){
+      return normalize(mix(in1, in2, t));
+    }
+
+    void main() {
+        vec3 albedo = texture(texAlbedo, vUV * tiling).rgb;
+
+        const float scale = 6.0;
+        vec3 rand = normalize(vec3(random(floor(abs(vPos.xz * scale) + 12.12898)) - 0.5, random(floor(abs(vPos.xz * scale) + 0.8216)), random(floor(abs(vPos.xz * scale))) - 0.5));
+        vec3 normal = nlerp(normalize(vNorm), rand, 0.3);
+
+        // const float gscale = 6.0;
+        // float rand2 = length(vec3(random(floor(abs(vPos.xz * gscale) + floor(cameraCenter.x))) - 0.5, random(floor(abs(vPos.xz * gscale) + floor(cameraCenter.y))), random(floor(abs(vPos.xz * gscale) + floor(cameraCenter.z))) - 0.5));
+        // // float rand2 = abs(dot(normalize(cameraCenter - vPos), reflect(normalize(vPos - cameraCenter), rand)));
+
+        albedo = pow(albedo, vec3(2.2));
+        albedo = mix(albedo.xyz, vec3(1,1,1), 0.2);
+
+        FragPosition = vec4(vPos, 1.0);
+        FragNormal = vec4(normal, 1.0);
+        FragAlbedo = vec4(albedo, 1.0);
+        FragSpecular = vec4(roughness, ambient /*+ ((rand2 > 1.15) ? 8.0 : 0.0)*/, 1.0, metallic);
     }
     
     `;
@@ -545,7 +655,7 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
 
     void main() { 
       float speed = 1.0;
-      float w = (1.0 - cos((time + 0.8) * speed - pow(position.x + 1.0, 4.0))) * pow(position.x + 1.0, 3.0) * 0.1;
+      float w = (1.0 - cos((time + random(offset_1) * 5.0 + 0.8) * speed - pow(position.x + 1.0, 4.0))) * pow(position.x + 1.0, 3.0) * 0.1;
 
       float noiseScale = 0.5;
       float timeScale = 2.0;

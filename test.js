@@ -192,13 +192,14 @@ export class Test extends Component {
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
-    this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(0.6, 0.6, 0.6, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    // this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.3 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout4 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish4, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.shark = { shader: new shaders.SharkGeometryShader(), texAlbedo: this.textures.shark, roughness: 0.8, metallic: 0.35, ambient: 2.0 };
-    this.materials.crab = { shader: new shaders.GeometryShaderTexturedMinimalBlendShape(), t: 1.0, texAlbedo: this.textures.crab, roughness: 0.9, metallic: 0.15, ambient: 1.0 };
+    this.materials.crab = { shader: new shaders.GeometryShaderTexturedMinimalBlendShape(), t: 1.0, texAlbedo: this.textures.crab, roughness: 0.9, metallic: 0.0, ambient: 1.0 };
   }
 
   createTextures() {
@@ -212,6 +213,7 @@ export class Test extends Component {
     this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
     this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
     this.textures.kelp = new Texture('/assets/meshes/kelp/kelpAlbedo.jpg');
+    this.textures.sand = new Texture('/assets/textures/sand/beach_sand.png');
   }
 
   firstTimeSetup(context) {
