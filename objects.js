@@ -544,48 +544,69 @@ objects.crab = class crab extends utils.SceneObject {
 
         this.boundingBox = boundingBox;
         this.initTransform = object.transform;
-        this.spline = new Hermite_Spline();
-        this.spline_2 = new Hermite_Spline();
+       
+        this.spline = new HermiteSpline();
+        
         this.sample_cnt = 1000;
         this.spline_is_drawn = false;
         this.A = vec3(0, 0, 1);
-        this.current_spline = this.spline;//randomly select spline?
+        if(Math.random() > 0.5){
+            this.A = vec3(0, 0, -1);
+        }
+        
         this.crab_position = getPos(this.transform);
-
-
-
+        
     }
 
     update(sceneObjects, uniforms, dt) {
 
         if (!this.spline_is_drawn) {
             this.spline_is_drawn = true;
-            // this.spline.add_point(0, -84.4, 0, -10, 0, 10);
-            // this.spline.add_point(4, -84.4, 4, 10, 0, 10); 
-            // this.spline.add_point(5.6, -84.4, 2.5, 10, 0, 10);
-            // this.spline.add_point(8, -84.4, 4, 0, 0, 0); 
+        
+            let crab_x_saturation_factor = 1;
+            let crab_z_saturation_factor = 1;
+           
+            let zero_vec = vec3(0, 0, 0);
+            let start_vec = vec3(this.crab_position[0], -84.4, this.crab_position[2]);
+        
+            let spline_limit = Math.ceil((Math.random() * 3) + 3);
+            for(let i = 0; i < spline_limit; i++){
+                this.spline.addPoint(zero_vec, zero_vec);
+            }
+            for(let i = 0; i < spline_limit; i++){
 
-            // this.spline.add_point(8, -84.4, 4, 0, 0, 0);
-            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
+                if (Math.random() > 0.5) {
+                    crab_x_saturation_factor = -1;
+                }
+                else {
+                    crab_x_saturation_factor = 1;
+                }
+                if (Math.random() > 0.5) {
+                    crab_z_saturation_factor = -1;
+                 }
+                else {
+                    crab_z_saturation_factor = 1;
+                }
 
-            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
-            // this.spline.add_point(0, -84.4, 10, 0, 0, 0); 
-            // this.spline.add_point(0, -84.4, 0, 0, 0, 0);
-
-            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
-            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2] + 10, 0, 0, 0);
-            this.spline.add_point(this.crab_position[0], -84.4, this.crab_position[2], 0, 0, 0);
+                if(i === 0 || i === spline_limit - 1){
+                    this.spline.editPoint(i, start_vec, false);
+                }
+                else{
+                    // this.spline.editPoint(i, vec3((this.crab_position[0] + Math.random() * 15 * crab_x_saturation_factor + 10), -84.4, (this.crab_position[2] + Math.random() * 15 * crab_z_saturation_factor + 10)), false);
+                    this.spline.editPoint(i, vec3((this.crab_position[0] + (Math.random() - 0.5) * 20 * + 15), -84.4, (this.crab_position[2] + (Math.random() - 0.5) * 20 * + 15)), false);
+                }
+            }
+            this.spline.controlPoints.map ((x) => {x.tan = x.tan.times_pairwise(vec3(1, 0, 1))}); 
+            this.time_scale = this.spline.getArcLength()/1.9;
 
         }
-        // let current_pos = this.current_spline.get_position((uniforms.animation_time/10000)%1);
-        // let next_pos = this.current_spline.get_position(((uniforms.animation_time/10000) + 0.01)%1);
-        // let B = next_pos.minus(current_pos);
-        // let theta = Math.acos((this.A.dot(B)).normalized);
+        let time = (uniforms.animation_time/1000);
+        let current_pos = this.spline.getPos((time/this.time_scale)%1);
+        let next_pos = this.spline.getPos((((time + dt)/this.time_scale)%1));
+        let B = next_pos.minus(current_pos).normalized();      
+        let theta = Math.acos((this.A.dot(B)));
 
-        // this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time/10000)%1)).times(Mat4.rotation(theta, 0, 1, 0));
-        this.transform = Mat4.translation(...this.current_spline.get_position((uniforms.animation_time / 10000) % 1));
-
-
+        this.transform = Mat4.translation(...this.spline.getPos((time/this.time_scale)%1)).times(Mat4.rotation(theta, 0, 1, 0));
     }
 
     draw(context, uniforms) {

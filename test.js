@@ -118,9 +118,9 @@ export class Test extends Component {
     const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
     let crab_x_saturation_factor = 1;
     let crab_z_saturation_factor = 1;
-
-    this.crab_num = (Math.random() * 7) + 3;
-    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) {//fix this.crab_num 
+    let crab_orientation_factor = 0;
+    this.crab_num = 10;
+    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) { 
 
       if (Math.random() > 0.5) {
         crab_x_saturation_factor = -1;
@@ -134,8 +134,20 @@ export class Test extends Component {
       else {
         crab_z_saturation_factor = 1;
       }
+      if (Math.random() > 0.5) {
+        crab_x_saturation_factor = -1;
+    }
+    else {
+        crab_x_saturation_factor = 1;
+    }
+    if (Math.random() > 0.5) {
+        crab_orientation_factor = 1;
+     }
+    else {
+        crab_orientation_factor = 0;
+    }
 
-      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor), sceneBounds));
+      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor).times(Mat4.rotation(Math.PI * crab_orientation_factor, 0, 1, 0)), sceneBounds));
 
     }
   }
