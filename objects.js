@@ -434,7 +434,7 @@ objects.predator = class predator extends utils.SceneObject {
     update(sceneObjects, uniforms, dt) {
         dt = Math.min(dt, 0.1);
 
-        this.huntForce(0.3, 80, sceneObjects);
+        this.huntForce(2.0, 80, sceneObjects);
         this.centerForce(0.2);
         this.avoidWalls(150, 20);
         this.avoidPredators(1.0, 80, sceneObjects);
@@ -448,7 +448,7 @@ objects.predator = class predator extends utils.SceneObject {
         const angle = Math.acos(base.dot(desired));
 
         const desiredOrientation = Quaternion.fromAxisAngle(angle, axis);
-        this.orientation = this.orientation.slerp(desiredOrientation, 0.01);
+        this.orientation = this.orientation.slerp(desiredOrientation, 0.02);
         this.transform = Mat4.translation(...this.particle.pos).times(this.orientation.toRotationMatrix());
     }
 
@@ -478,7 +478,7 @@ objects.predator = class predator extends utils.SceneObject {
         let closest = { distance: 99999, index: 0 };
         for (let i = 0; i < centers.length; i++) {
             const dist = centers[i].minus(this.particle.pos).norm();
-            if (dist <= closest.distance) {
+            if (dist <= closest.distance && inRange(centers[i], this.boundingBox)) {
                 closest.distance = dist;
                 closest.index = i;
             }
@@ -599,4 +599,8 @@ objects.crab = class crab extends utils.SceneObject {
 
 function getPos(mat) {
     return vec3(mat[0][3], mat[1][3], mat[2][3]);
+}
+
+function inRange(input, bb) {
+    return input[0] > bb[0][0] && input[0] < bb[0][1] && input[1] > bb[1][0] && input[1] < bb[1][1] && input[2] > bb[2][0] && input[2] < bb[2][1];
 }

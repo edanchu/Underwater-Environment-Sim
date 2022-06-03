@@ -158,7 +158,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         FragColor = vec4(finColor, 1.0);
       }`;
   }
-};
+}
 
 shaders.GeometryShader = class GeometryShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
