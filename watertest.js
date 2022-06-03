@@ -7,6 +7,10 @@ import { tiny     } from './examples/common.js';
 const { Shape, Component, Shader } = tiny;
 const { Mat4, vec3,              } = math;
 
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
 export class WaterTest extends Component {
     #waterSim;
     #waterMesh;
@@ -47,6 +51,12 @@ export class WaterTest extends Component {
         // Update the texture:
         this.#waterMaterial.texture = this.#waterSim.particleTexture();
         this.#waterMesh.draw({context: gl}, this.uniforms, Mat4.identity(), this.#waterMaterial);
+    }
+
+    render_controls() {
+        this.key_triggered_button("Random drop", ["d"], () => {
+            this.#waterSim.drop(this.context, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, 0.1);
+        }, "green");
     }
 }
 

@@ -10,6 +10,9 @@ const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 
 export class Test extends Component {
   init() {
+    this.waterPlaneTransf = Mat4.translation(0, 20, 0).times(Mat4.scale(300, 70, 300));
+    this.waterPlaneTransfInv = Mat4.scale(1/300, 1/70, 1/300).times(Mat4.translation(0, -20, 0));
+
     this.createShapes();
     this.createTextures();
     this.createMaterials();
@@ -29,7 +32,7 @@ export class Test extends Component {
     const gl = context.context;
 
     // Construct the water sim:
-    this.waterSim    = new WaterSim(gl, 1024, 1024);
+    this.waterSim    = new WaterSim(gl, 2048, 2048);
     this.waterShader = new shaders.WaterMeshShader();
 
     this.waterMaterial = {
@@ -72,32 +75,32 @@ export class Test extends Component {
     let ray_org = context.controls.pos;
     let ray_dir = context.controls.towards;
 
-    // need to intersect the xz plane:
-    const ray_t       = (20 - ray_org[1]) / ray_dir[1];
-    const plane_point = ray_org.plus(ray_dir.times(ray_t));
+    let local_ray_org = this.waterPlaneTransfInv.times(vec4(...ray_org, 1.0)).to3();
+    let local_ray_dir = this.waterPlaneTransfInv.times(vec4(...ray_dir, 0.0)).to3();
 
-    const local_ray_t = -(ray_org[1] - 20) / ray_dir[1];
-    const local_plane_point = vec3(ray_org[0], ray_org[1] - 20, ray_org[2]).plus(ray_dir.times(local_ray_t));
+    const ray_t       = -local_ray_org[1] / local_ray_dir[1];
+    const plane_point = local_ray_org.plus(local_ray_dir.times(ray_t));
 
-    // Now we need to normalize the point within the 300 range:
-    const plane_point_x = clamp(-1, (local_plane_point[0] / this.planeSize / 2), 1);
-    const plane_point_z = clamp(-1, (local_plane_point[2] / this.planeSize / 2), 1);
+    const world_plane_point = this.waterPlaneTransf.times(vec4(...plane_point, 1.0)).to3();
 
     // Step the water simulation:
-    this.waterSim.step(gl);
-    this.waterSim.step(gl);
+    for (let i = 0; i < 2; i++) {
+      this.waterSim.step(gl);
+      this.waterSim.step(gl); 
+    }
     this.waterSim.normals(gl);
 
     // Get the water particle texture:
-    this.materials.water.waterParticles = this.waterSim.particleTexture();
+    this.materials.water.texture = this.waterSim.particleTexture(); //waterParticles = this.waterSim.particleTexture();
+    this.materials.water.lightPosition = vec3(100, -20, 100);
 
     this.whenToDistort += 1;
 
     if (context.controls.feed) {
-      console.log(plane_point_x, plane_point_z);
-      this.waterSim.drop(gl, plane_point_x, plane_point_z, 0.2, 0.05);
+      console.log(plane_point.to_string());
+      this.waterSim.drop(gl, 0, 0, 0.1, 0.01);
 
-      const transform = Mat4.translation(plane_point[0], plane_point[1], plane_point[2]).times(Mat4.scale(0.2, 0.4, 0.2));
+      const transform = Mat4.translation(...world_plane_point).times(Mat4.scale(0.2, 0.4, 0.2));
       this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, { shader: new shaders.GeometryShader(), color: vec4(1, 1, 0, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) }, transform, "bait"));
 
       context.controls.feed = false;
@@ -139,7 +142,8 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
-    this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
+    //this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.waterPlane, this.materials.water, this.waterPlaneTransf, "water", "forward", "TRIANGLES", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
 
@@ -170,6 +174,7 @@ export class Test extends Component {
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
+    this.shapes.waterPlane = new WaterPlane2(200, 200);
   }
 
   createMaterials() {
@@ -190,7 +195,7 @@ export class Test extends Component {
     this.materials.sharkShadow = { shader: new shaders.SharkShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
-      shader: new shaders.WaterSurfaceShader(),
+      shader: new shaders.WaterMeshShader(), //new shaders.WaterSurfaceShader(),
       color: color(0.3, 0.7, 1, 1),
       gTextures: () => this.gTextures,
       waterFlow: new Texture('assets/textures/water/flow_speed_noise.png'),
@@ -644,4 +649,28 @@ export class Test extends Component {
 
 function clamp(x, y, z) {
   return Math.min(Math.max(x, y), z);
+}
+
+class WaterPlane2 extends Shape {
+  // Constructs the shape, using detailx and detaily to specify a resolution:
+  constructor(detailx, detaily) {
+      super("position");
+
+      this.arrays.position = [];
+      this.indices         = [];
+
+      for (let y = 0; y <= detaily; y++) {
+          const t = y / detaily;
+          for (let x = 0; x <= detailx; x++) {
+              const s = x / detailx;
+              this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
+
+              if (x < detailx && y < detaily) {
+                  const i = x + y * (detailx + 1);
+                  this.indices.push(i, i + 1, i + detailx + 1);
+                  this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
+              }
+          }
+      }
+  }
 }

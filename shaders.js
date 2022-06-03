@@ -68,11 +68,11 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                 
                 // ambient:
                 float ambientStrength = 0.1;
-                vec3  ambient         = ambientStrength * vec3(1, 1, 1); // white light color
+                vec3  ambient         = ambientStrength * vec3(0, 0.1, 0.6); // white light color
 
                 // diffuse:
                 vec3 lightDir = normalize(lightPosition - pos);
-                vec3 diffuse  = max(dot(normal, lightDir), 0.0) * vec3(1, 1, 1);
+                vec3 diffuse  = max(dot(normal, lightDir), 0.0) * vec3(0.1, 0.3, 0.7);
 
                 fragColor = vec4(ambient + diffuse, 1.0);
             }
@@ -332,6 +332,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       uniform float planeSize;
 
       out vec3 vertexWorldspace;
+      out vec3 localPosition;
       out vec2 texCoord;
 
       void main() {
@@ -342,7 +343,9 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 newPos   = position;
         newPos.y     += particle.r;
 
-        vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
+        localPosition = newPos;
+
+        vec3 p = (modelTransform * vec4(newPos, 1.0)).xyz;
 
         gl_Position = projection_camera_transform * vec4( p, 1.0 );
         vertexWorldspace = p; 
@@ -361,6 +364,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       uniform vec3 cameraCenter;
 
       in vec3 vertexWorldspace;
+      in vec3 localPosition;
       in vec2 texCoord;
 
       vec3 Distort (vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB) {
@@ -406,14 +410,14 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         if (normal == vec3(0.0, 1.0, 0.0)) {
             normal = textNormal;
         } else {
-            normal = mix(normal, textNormal, 0.3);
+            normal = mix(normal, textNormal, 0.4);
         }
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));
         float limit = mix(0.0, 0.95, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
         // limit = mix(limit, 0.0, clamp(length(vertexWorldspace.xz - cameraCenter.xz)/80.0, 0.0, 1.0));
-        vec3 waterColor = color.xyz;
+        vec3 waterColor = color.xyz * localPosition.y;
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33)  /2.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 2.0, clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
