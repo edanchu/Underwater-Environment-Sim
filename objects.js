@@ -284,6 +284,7 @@ objects.boidsSchool = class boidsSchool {
         this.boundingBox = boundingBox;
         this.numBoids = numBoids;
         this.initTransform = initTransform;
+        this.initCenter = center;
 
         this.boids = [];
         const initVel = vec3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 5);
@@ -332,7 +333,7 @@ objects.boidsSchool = class boidsSchool {
     }
 
     centerOfBoxForce(centeringForce) {
-        this.boids.map((x) => x.addForce(vec3(0, 20, 0).minus(x.pos).times(centeringForce)));
+        this.boids.map((x) => x.addForce(this.initCenter.minus(x.pos).times(centeringForce)));
     }
 
 
@@ -426,6 +427,8 @@ objects.predator = class predator extends utils.SceneObject {
         this.initTransform = object.transform;
 
         this.particle = new Particle(1, getPos(this.transform), "symplectic");
+
+        this.orientation = Quaternion.fromAxisAngle(0, vec3(-1, 0, 0));
     }
 
     update(sceneObjects, uniforms, dt) {
@@ -443,11 +446,14 @@ objects.predator = class predator extends utils.SceneObject {
         const desired = this.particle.v.normalized();
         const axis = base.cross(desired);
         const angle = Math.acos(base.dot(desired));
-        this.transform = Mat4.translation(...this.particle.pos).times(Mat4.rotation(angle, ...axis));
+
+        const desiredOrientation = Quaternion.fromAxisAngle(angle, axis);
+        this.orientation = this.orientation.slerp(desiredOrientation, 0.01);
+        this.transform = Mat4.translation(...this.particle.pos).times(this.orientation.toRotationMatrix());
     }
 
     centerForce(force) {
-        this.particle.addForce(vec3(0, 20, 0).minus(this.particle.pos).times(force));
+        this.particle.addForce(vec3(0, 0, 0).minus(this.particle.pos).times(force));
     }
 
     huntForce(centerForce, minDist, sceneObjects) {
@@ -456,18 +462,29 @@ objects.predator = class predator extends utils.SceneObject {
             if (x.id.includes("boids"))
                 centers.push(...x.centers);
         });
-        let found = false;
+        // let found = false;
+        // for (let i = 0; i < centers.length; i++) {
+        //     const dir = centers[i].minus(this.particle.pos);
+        //     const dist = dir.norm();
+        //     if (dist <= minDist) {
+        //         found = true;
+        //         this.particle.addForce(dir.times(centerForce));
+        //     }
+        // }
+        // if (!found) {
+        //     this.particle.addForce(this.particle.pos.times(-centerForce));
+        // }
+
+        let closest = { distance: 99999, index: 0 };
         for (let i = 0; i < centers.length; i++) {
-            const dir = centers[i].minus(this.particle.pos);
-            const dist = dir.norm();
-            if (dist <= minDist) {
-                found = true;
-                this.particle.addForce(dir.times(centerForce));
+            const dist = centers[i].minus(this.particle.pos).norm();
+            if (dist <= closest.distance) {
+                closest.distance = dist;
+                closest.index = i;
             }
         }
-        if (!found) {
-            this.particle.addForce(this.particle.pos.times(-centerForce));
-        }
+        const f = (centers[closest.index].minus(this.particle.pos)).times(centerForce);
+        this.particle.addForce(f);
     }
 
     avoidPredators(avoidForce, minDist, sceneObjects) {

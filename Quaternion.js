@@ -66,7 +66,7 @@ export class Quaternion {
     }
 
     slerp(q2, t) {
-        let angle = this.dot(q2);
+        let angle = Math.acos(this.dot(q2));
         let c1 = Math.sin((1 - t) * angle) / Math.sin(angle);
         let c2 = Math.sin(t * angle) / Math.sin(angle);
         return this.scale(c1).plus(q2.scale(c2));
