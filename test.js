@@ -1,19 +1,10 @@
 import { tiny, defs } from './examples/common.js';
-import { Quaternion, quat } from './Quaternion.js';
 import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
 import { objects } from './objects.js';
-import { HermiteSpline } from './HermiteSpline.js'
 
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
-
-const floor = -85;
-const ceiling = 25;
-const kelp_clusters = 10;
-const kelp_max = 10;
-const kelp_min = 6;
-
 
 export class Test extends Component {
   init() {
@@ -170,7 +161,6 @@ export class Test extends Component {
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
-    // this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(1, 1, 1, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.3 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
