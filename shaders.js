@@ -1591,6 +1591,9 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     material.gTextures().gSpecular.activate(context, 9);
     context.uniform1i(gpu_addresses.gSpecular, 9);
 
+    material.caustics.activate(context, 5);
+    context.uniform1i(gpu_addresses.caustics, 5);
+
     material.lightDepthTexture().activate(context, 10);
     context.uniform1i(gpu_addresses.lightDepthTexture, 10);
 
@@ -1633,6 +1636,9 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     uniform sampler2D gNormal;
     uniform sampler2D gAlbedo;
     uniform sampler2D gSpecular;
+
+    uniform sampler2D caustics;
+
     uniform float slider;
     uniform float slider2;
 
@@ -1757,6 +1763,13 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         return 1.0 - shadow;
     }
 
+    float sampleCaustics(vec3 position){
+      float caustics1 = texture(caustics, time / 35.0 + position.xz / 45.0).x;
+      float caustics2 = texture(caustics, time / 30.0 - position.xz / 53.0).x;
+
+      return min(caustics1, caustics2) + 0.4;
+    }
+
     float calcShadow(vec3 position){
       vec4 lightSamplePos = sunProjView * vec4(position,1.0);
       lightSamplePos.xyz /= lightSamplePos.w; 
@@ -1769,8 +1782,12 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         lightSamplePos.y >= 0.0 &&
         lightSamplePos.y <= 1.0 &&
         lightSamplePos.z < 1.0;
-     
-      return inRange ? PCF_shadow(lightSamplePos.xyz) : 1.0;
+
+      float caustics = sampleCaustics(position);
+
+      float scale = 1.5;
+
+      return inRange ? PCF_shadow(lightSamplePos.xyz) * caustics * scale: 1.0;
     }
 
     void main() {

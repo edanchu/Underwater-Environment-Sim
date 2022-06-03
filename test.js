@@ -92,64 +92,30 @@ export class Test extends Component {
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
-    const sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
+    this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
     const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
     const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), this.sceneBounds));
 
     const shark = new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.scale(5, 5, 5), "shark", "deferred", "TRIANGLES", true, this.materials.sharkShadow);
-    this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
-    this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
+    this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), this.sceneBounds));
+    this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), this.sceneBounds));
 
 
-    // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
-    // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
+    // this.sceneObjects.push(new objects.kelpController("kelp", 20, this.sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
+    // this.sceneObjects.push(new objects.kelpController("kelp", 20, this.sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
 
 
     const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(10, 25, 10)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
     this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 1650));
 
-    const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
-    let crab_x_saturation_factor = 1;
-    let crab_z_saturation_factor = 1;
-    let crab_orientation_factor = 0;
-    this.crab_num = 10;
-    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) { 
-
-      if (Math.random() > 0.5) {
-        crab_x_saturation_factor = -1;
-      }
-      else {
-        crab_x_saturation_factor = 1;
-      }
-      if (Math.random() > 0.5) {
-        crab_z_saturation_factor = -1;
-      }
-      else {
-        crab_z_saturation_factor = 1;
-      }
-      if (Math.random() > 0.5) {
-        crab_x_saturation_factor = -1;
-    }
-    else {
-        crab_x_saturation_factor = 1;
-    }
-    if (Math.random() > 0.5) {
-        crab_orientation_factor = 1;
-     }
-    else {
-        crab_orientation_factor = 0;
-    }
-
-      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor).times(Mat4.rotation(Math.PI * crab_orientation_factor, 0, 1, 0)), sceneBounds));
-
-    }
+    this.spawnCrabs();
   }
 
   createShapes() {
@@ -175,7 +141,7 @@ export class Test extends Component {
     this.materials.plastic = { shader: new defs.Phong_Shader(), ambient: .2, diffusivity: 1, specularity: .5, color: vec4(0.9, 0.5, 0.9, 1.0) };
 
     this.materials.geometryMaterial = { shader: new shaders.GeometryShader(), color: vec4(0.5, 0.5, 0.5, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
-    this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
+    this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), caustics: this.textures.caustic, gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
     this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 2.0, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
@@ -246,6 +212,44 @@ export class Test extends Component {
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.enable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
+  }
+
+  spawnCrabs() {
+    const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
+    let crab_x_saturation_factor = 1;
+    let crab_z_saturation_factor = 1;
+    let crab_orientation_factor = 0;
+    this.crab_num = 10;
+    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) {
+
+      if (Math.random() > 0.5) {
+        crab_x_saturation_factor = -1;
+      }
+      else {
+        crab_x_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_z_saturation_factor = -1;
+      }
+      else {
+        crab_z_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_x_saturation_factor = -1;
+      }
+      else {
+        crab_x_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_orientation_factor = 1;
+      }
+      else {
+        crab_orientation_factor = 0;
+      }
+
+      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor).times(Mat4.rotation(Math.PI * crab_orientation_factor, 0, 1, 0)), this.sceneBounds));
+
+    }
   }
 
   //engine stuff

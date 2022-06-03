@@ -302,7 +302,8 @@ objects.boidsSchool = class boidsSchool {
         this.alignForce(0.2);
         this.avoidCamera(25, 6, uniforms);
         this.avoidWalls(20.0, 10);
-        this.avoidPredators(40, 50, sceneObjects);
+        this.avoidPredators(40, 90, sceneObjects);
+        this.findBait(15, 120, sceneObjects);
         this.limitVelocity(this.chased ? 20 : 10);
 
         this.boids.map((x) => {
@@ -385,6 +386,26 @@ objects.boidsSchool = class boidsSchool {
                 if (dist < minDist) {
                     x.addForce(dir.normalized().times(avoidForce));
                     this.chased = true;
+                }
+            }
+        });
+    }
+
+    findBait(findForce, minDist, sceneObjects) {
+
+        let baitLocations = [];
+        sceneObjects.map((x) => {
+            if (x.id.includes("bait")) {
+                baitLocations.push(getPos(x.transform));
+            }
+        })
+
+        this.boids.map((x) => {
+            for (let i = 0; i < baitLocations.length; i++) {
+                const dir = x.pos.minus(baitLocations[i]);
+                const dist = dir.norm();
+                if (dist < minDist) {
+                    x.addForce(dir.normalized().times(-findForce));
                 }
             }
         });
@@ -544,36 +565,36 @@ objects.crab = class crab extends utils.SceneObject {
 
         this.boundingBox = boundingBox;
         this.initTransform = object.transform;
-       
+
         this.spline = new HermiteSpline();
-        
+
         this.sample_cnt = 1000;
         this.spline_is_drawn = false;
         this.A = vec3(0, 0, 1);
-        if(Math.random() > 0.5){
+        if (Math.random() > 0.5) {
             this.A = vec3(0, 0, -1);
         }
-        
+
         this.crab_position = getPos(this.transform);
-        
+
     }
 
     update(sceneObjects, uniforms, dt) {
 
         if (!this.spline_is_drawn) {
             this.spline_is_drawn = true;
-        
+
             let crab_x_saturation_factor = 1;
             let crab_z_saturation_factor = 1;
-           
+
             let zero_vec = vec3(0, 0, 0);
             let start_vec = vec3(this.crab_position[0], -84.4, this.crab_position[2]);
-        
+
             let spline_limit = Math.ceil((Math.random() * 3) + 3);
-            for(let i = 0; i < spline_limit; i++){
+            for (let i = 0; i < spline_limit; i++) {
                 this.spline.addPoint(zero_vec, zero_vec);
             }
-            for(let i = 0; i < spline_limit; i++){
+            for (let i = 0; i < spline_limit; i++) {
 
                 if (Math.random() > 0.5) {
                     crab_x_saturation_factor = -1;
@@ -583,30 +604,30 @@ objects.crab = class crab extends utils.SceneObject {
                 }
                 if (Math.random() > 0.5) {
                     crab_z_saturation_factor = -1;
-                 }
+                }
                 else {
                     crab_z_saturation_factor = 1;
                 }
 
-                if(i === 0 || i === spline_limit - 1){
+                if (i === 0 || i === spline_limit - 1) {
                     this.spline.editPoint(i, start_vec, false);
                 }
-                else{
+                else {
                     // this.spline.editPoint(i, vec3((this.crab_position[0] + Math.random() * 15 * crab_x_saturation_factor + 10), -84.4, (this.crab_position[2] + Math.random() * 15 * crab_z_saturation_factor + 10)), false);
                     this.spline.editPoint(i, vec3((this.crab_position[0] + (Math.random() - 0.5) * 20 * + 15), -84.4, (this.crab_position[2] + (Math.random() - 0.5) * 20 * + 15)), false);
                 }
             }
-            this.spline.controlPoints.map ((x) => {x.tan = x.tan.times_pairwise(vec3(1, 0, 1))}); 
-            this.time_scale = this.spline.getArcLength()/1.9;
+            this.spline.controlPoints.map((x) => { x.tan = x.tan.times_pairwise(vec3(1, 0, 1)) });
+            this.time_scale = this.spline.getArcLength() / 1.9;
 
         }
-        let time = (uniforms.animation_time/1000);
-        let current_pos = this.spline.getPos((time/this.time_scale)%1);
-        let next_pos = this.spline.getPos((((time + dt)/this.time_scale)%1));
-        let B = next_pos.minus(current_pos).normalized();      
+        let time = (uniforms.animation_time / 1000);
+        let current_pos = this.spline.getPos((time / this.time_scale) % 1);
+        let next_pos = this.spline.getPos((((time + dt) / this.time_scale) % 1));
+        let B = next_pos.minus(current_pos).normalized();
         let theta = Math.acos((this.A.dot(B)));
 
-        this.transform = Mat4.translation(...this.spline.getPos((time/this.time_scale)%1)).times(Mat4.rotation(theta, 0, 1, 0));
+        this.transform = Mat4.translation(...this.spline.getPos((time / this.time_scale) % 1)).times(Mat4.rotation(theta, 0, 1, 0));
     }
 
     draw(context, uniforms) {
