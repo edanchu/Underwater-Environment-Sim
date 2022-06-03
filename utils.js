@@ -95,6 +95,7 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
     speed_multiplier = 1;
     mouse_enabled_canvases = new Set();
     will_take_over_uniforms = true;
+    thrustMult = 1.0;
 
     set_recipient(matrix_closure, inverse_closure) {
         this.matrix = matrix_closure;
@@ -140,10 +141,10 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
         this.new_line();
         this.key_triggered_button("Left", ["a"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
         this.key_triggered_button("Back", ["s"], () => this.thrust[2] = -1, undefined, () => this.thrust[2] = 0);
-        this.key_triggered_button("Right", ["d"], () => this.thrust[0] = -1, undefined,
-            () => this.thrust[0] = 0);
+        this.key_triggered_button("Right", ["d"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
         this.new_line();
         this.key_triggered_button("Down", ["z"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Fast", ["c"], () => this.speed_multiplier == 5 ? this.speed_multiplier = 1 : this.speed_multiplier = 5);
         this.new_line();
         this.key_triggered_button("free mouse", ["f"], () => {
             this.look_around_locked = true;

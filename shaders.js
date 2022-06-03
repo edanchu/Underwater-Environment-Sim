@@ -138,8 +138,8 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 flow = texture(waterFlow, texCoord).xyz;
         flow.xy = flow.xy * 2.0 - 1.0;
         flow *= 0.3;
-        vec3 uvwA = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
-        vec3 uvwB = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
+        vec3 uvwA = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
+        vec3 uvwB = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
         float heightScale = (flow.z * 0.25 + 0.75) * 0.2;
         vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
         vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
@@ -148,11 +148,10 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));
-        float limit = mix(0.0, 0.95, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
+        float limit = mix(0.0, 0.97, 1.0 - min((abs(cameraCenter.y - vertexWorldspace.y))/200.0, 1.0));
         // limit = mix(limit, 0.0, clamp(length(vertexWorldspace.xz - cameraCenter.xz)/80.0, 0.0, 1.0));
         vec3 waterColor = color.xyz;
-        waterColor = mix(waterColor, vec3(.09, 0.195, 0.33)  /2.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace.xz - cameraCenter.xz) / 150.0, 3.0), 0.0, 1.0));
-        waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 2.0, clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
+        waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 3.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace - cameraCenter) / 150.0, 3.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
         vec3 finColor = b * mix(color.xyz, vec3(3,3,3), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
         
@@ -553,7 +552,7 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
       float noisex = PerlinNoise3Pass(offset_1 + position.yy + 0.5 + time / timeScale, noiseScale) - 0.5;
       float noisez = PerlinNoise3Pass(offset_1 + position.yy + time / timeScale, noiseScale) - 0.5;
       float scale = (position.y + 1.8) * 1.5;
-      vec3 pos = vec3(position.x + noisex * scale, position.y, position.z + noisez * scale + w);
+      vec3 pos = vec3(position.x + noisex * scale, position.y - random(offset_1), position.z + noisez * scale + w);
 
       vPos = (modelTransform * vec4(pos, 1.0)).xyz + vec3(offset_1.x, 0, offset_1.y);
       gl_Position = projection_camera_transform * vec4( vPos, 1.0);
@@ -995,7 +994,7 @@ shaders.FishGeometryShaderInstanced = class FishGeometryShaderInstanced extends 
     context.uniform1f(gpu_addresses.twistAmplitude, 0.12);
     context.uniform1f(gpu_addresses.rollAmplitude, 0.15);
     context.uniform1f(gpu_addresses.rollFrequency, 1.02);
-    context.uniform1f(gpu_addresses.genAmplitude, document.getElementById("sld1").value);
+    context.uniform1f(gpu_addresses.genAmplitude, 0.5);
   }
 
   shared_glsl_code() {
@@ -1494,6 +1493,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
 
     context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
+    context.uniform1f(gpu_addresses.slider2, document.getElementById("sld3").value);
   }
 
   shared_glsl_code() {
@@ -1524,6 +1524,7 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     uniform sampler2D gAlbedo;
     uniform sampler2D gSpecular;
     uniform float slider;
+    uniform float slider2;
 
     uniform mat4 sunProjView;
     uniform sampler2D lightDepthTexture;
@@ -1581,6 +1582,14 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
     float ease(float x){
       return 1.0 - cos((x * 3.14159265) / 2.0);
     }
+
+    float ease2(float x){
+      return 1. - pow(1. - x, 3.);
+    }
+
+    float lerp(float a, float b, float percent){
+      return (1.0 - percent) * a + (percent * b);
+    } 
     
     vec3 PBR(vec3 WorldPos, vec3 Normal, vec3 albedo, float roughness, float metallic) {
         vec3 N = normalize(Normal);
@@ -1608,8 +1617,10 @@ shaders.DirectionalLightShader = class DirectionalLightShader extends tiny.Shade
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
         vec3 specular = numerator / denominator;
     
+        float height = 1.0 - lerp(0.0, slider2, ease2(clamp(WorldPos.y/-85.0 , 0.0, 1.0)));
+
         float NdotL = max(dot(N, L), 0.0);
-        Lo += (kD * albedo / 3.14159265 + specular) * radiance * NdotL;
+        Lo += (kD * albedo / 3.14159265 + specular) * radiance * NdotL * height;
     
         return Lo;
     }
@@ -1693,6 +1704,8 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
 
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld3").value);
   }
 
   shared_glsl_code() {
@@ -1720,6 +1733,8 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
     uniform sampler2D gSpecular;
     uniform samplerCube cIrradiance;
 
+    uniform float slider;
+
     uniform vec3 cameraCenter;
     
 
@@ -1728,6 +1743,14 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
     vec3 fresnelSchlick(float cosTheta, vec3 F0, float roughness){
       return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
     }  
+
+    float ease2(float x){
+      return 1. - pow(1. - x, 2.);
+    }
+
+    float lerp(float a, float b, float percent){
+      return (1.0 - percent) * a + (percent * b);
+   } 
 
     void main(){		
       ivec2 fragCoord = ivec2(gl_FragCoord.xy);
@@ -1747,7 +1770,9 @@ shaders.AmbientLightShader = class AmbientLightShader extends tiny.Shader {
       kD *= 1.0 - metallic;
       vec3 irradiance = texture(cIrradiance, normal).xyz;
       vec3 diffuse = irradiance * albedo.xyz;
-      vec3 ambient = (kD * diffuse) * ao;
+
+      float height = 1.0 - lerp(0.0, slider, ease2(clamp(position.y/-85.0 , 0.0, 1.0)));
+      vec3 ambient = (kD * diffuse) * ao * height;
 
       FragColor = vec4(ambient, albedo.w);
     }  
@@ -1896,7 +1921,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
     context.uniform1f(gpu_addresses.exposure, material.exposure);
 
-    context.uniform1f(gpu_addresses.slider, document.getElementById('sld3').value);
+    context.uniform1f(gpu_addresses.slider, document.getElementById('sld1').value);
   }
 
   shared_glsl_code() {
@@ -1959,7 +1984,7 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
       //hsv tonemapping
       color = rgb2hsv(color);
-      color.y *= 1.4;
+      color.y *= 1.6;
       color.z *= 1.4;
       color = hsv2rgb(color);
     
@@ -1968,6 +1993,13 @@ shaders.CopyToDefaultFB = class CopyToDefaultFB extends tiny.Shader {
 
       // gamma correction 
       mapped = pow(mapped, vec3(1.0 / gamma));
+
+      //contrast
+
+      float c = 10.0;
+      float f = 259.0 * (c + 255.0) / (255.0 * (259.0 - c));
+
+      mapped = (f * (mapped * 255.0 - vec3(128.0)) + vec3(128.0)) / 255.0;
     
       FragColor = vec4(mapped, 1.0);
     }
@@ -2191,7 +2223,7 @@ shaders.ShadowShaderKelp = class ShadowShaderKelp extends tiny.Shader {
       float noisex = PerlinNoise3Pass(offset_1 + position.yy + 0.5 + time / timeScale, noiseScale) - 0.5;
       float noisez = PerlinNoise3Pass(offset_1 + position.yy + time / timeScale, noiseScale) - 0.5;
       float scale = (position.y + 1.8) * 1.5;
-      vec3 pos = vec3(position.x + noisex * scale, position.y, position.z + noisez * scale + w);
+      vec3 pos = vec3(position.x + noisex * scale, position.y  - random(offset_1), position.z + noisez * scale + w);
 
       gl_Position = projView * (modelTransform * vec4(pos, 1.0) + vec4(offset_1.x, 0, offset_1.y, 0));
     }`;
@@ -2426,7 +2458,7 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
 
     context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
 
-    context.uniform1f(gpu_addresses.slider, document.getElementById("sld3").value);
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld3"));
   }
 
   shared_glsl_code() {
@@ -2483,7 +2515,7 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
     }
 
     float ease2(float x){
-      return 1. - pow(1. - x, 3.);
+      return x == 1. ? 1. : 1. - pow(2., -10. * x);
     }
 
     float lerp(float a, float b, float percent){
@@ -2501,7 +2533,7 @@ shaders.DepthFogShader = class DepthFogShader extends tiny.Shader {
 
         float modifier = max(height, depth);
 
-        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)/2.0, modifier);
+        vec3 fog = mix(albedo, vec3(.09, 0.195, 0.33)/(2.0 + ease(clamp(position.y/-85.0 , 0.0, 1.0))), modifier);
 
         FragColor = vec4(fog, 1.0);
     }

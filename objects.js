@@ -107,7 +107,7 @@ objects.instancedKelpController = class instancedKelpController extends utils.Sc
         const genOffsets = [];
 
         for (let i = 0; i < numKelp * 2; i++) {
-            genOffsets.push((Math.random() - 0.5) * 850, (Math.random() - 0.5) * 850);
+            genOffsets.push((Math.random() - 0.5) * 650, (Math.random() - 0.5) * 650);
         }
 
         this.offsets = new Float32Array(genOffsets);
@@ -294,7 +294,7 @@ objects.boidsSchool = class boidsSchool {
     }
 
     update(sceneObjects, uniforms, dt) {
-
+        dt = Math.min(dt, 0.1);
         this.centerForce(0.5);
         this.centerOfBoxForce(0.001);
         this.separateForce(0.3, 10);
@@ -429,10 +429,12 @@ objects.predator = class predator extends utils.SceneObject {
     }
 
     update(sceneObjects, uniforms, dt) {
-        this.huntForce(0.3, 50, sceneObjects);
+        dt = Math.min(dt, 0.1);
+
+        this.huntForce(0.3, 80, sceneObjects);
         this.centerForce(0.002);
         this.avoidWalls(50, 20);
-        this.avoidPredators(12.5, 40, sceneObjects);
+        this.avoidPredators(1.0, 80, sceneObjects);
         this.limitVelocity(15);
 
         this.particle.update(dt);
@@ -454,13 +456,17 @@ objects.predator = class predator extends utils.SceneObject {
             if (x.id.includes("boids"))
                 centers.push(...x.centers);
         });
-
+        let found = false;
         for (let i = 0; i < centers.length; i++) {
             const dir = centers[i].minus(this.particle.pos);
             const dist = dir.norm();
             if (dist <= minDist) {
+                found = true;
                 this.particle.addForce(dir.times(centerForce));
             }
+        }
+        if (!found) {
+            this.particle.addForce(this.particle.pos.times(-centerForce));
         }
     }
 
@@ -476,7 +482,7 @@ objects.predator = class predator extends utils.SceneObject {
             const dir = this.particle.pos.minus(predatorLocations[i]);
             const dist = dir.norm();
             if (dist < minDist) {
-                this.particle.addForce(dir.normalized().times(avoidForce));
+                this.particle.addForce(dir.times(avoidForce));
             }
         }
     }

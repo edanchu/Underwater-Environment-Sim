@@ -31,7 +31,7 @@ export class Test extends Component {
     this.paused = false;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 5.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 4.0, 1)];
   }
 
   render_animation(context) {
@@ -112,8 +112,8 @@ export class Test extends Component {
     // this.sceneObjects.push(new objects.kelpController("kelp", 20, sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
 
 
-    const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(15, 25, 15)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
-    this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 850));
+    const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(10, 25, 10)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 1650));
 
     const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
     let crab_x_saturation_factor = 1;
@@ -142,7 +142,7 @@ export class Test extends Component {
 
   createShapes() {
     this.shapes = {};
-    this.planeSize = 300;
+    this.planeSize = 1200;
     this.shapes.ball = new defs.Subdivision_Sphere(6);
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
@@ -190,7 +190,7 @@ export class Test extends Component {
     };
 
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
-    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
+    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sand = { shader: new shaders.GeometryShader, color: vec4(0.6, 0.6, 0.6, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
