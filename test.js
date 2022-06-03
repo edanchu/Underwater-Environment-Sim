@@ -44,6 +44,9 @@ export class Test extends Component {
       }
       this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
     }
+    else {
+      this.uniforms.animation_time -= this.uniforms.animation_delta_time;
+    }
 
     this.render(context);
   }
