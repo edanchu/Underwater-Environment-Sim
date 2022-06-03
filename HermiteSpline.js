@@ -28,10 +28,12 @@ export
                 if (position != false)
                     this.controlPoints[index].pos = position;
                 if (index == 0) {
-                    this.controlPoints[index].tan = this.controlPoints[index + 1].pos.minus(this.controlPoints[index].pos).times(1 / (2 * scale))
+                    this.controlPoints[index].tan = this.controlPoints[index + 1].pos.minus(this.controlPoints[index].pos).times(1 / (2 * scale));
+                    //this.controlPoints[index].tan = vec3(1, 0, 1);
                 }
                 else if (index == this.controlPoints.length - 1) {
-                    this.controlPoints[index].tan = this.controlPoints[index - 1].pos.minus(this.controlPoints[index].pos).times(1 / (2 * scale))
+                    this.controlPoints[index].tan = this.controlPoints[index - 1].pos.minus(this.controlPoints[index].pos).times(1 / (2 * scale));
+                    //this.controlPoints[index].tan = vec3(1, 0, 1);
                 }
                 else {
                     this.controlPoints[index].tan = this.controlPoints[index + 1].pos.minus(this.controlPoints[index - 1].pos).times(1 / (2 * scale));
@@ -70,7 +72,7 @@ export
                 this.arrays.position = [];
                 this.arrays.normal = [];
                 this.indices = [];
-                let subdivisions = 3 * (this.controlPoints.length - 1), resolution = 5;
+                let subdivisions = 20 * (this.controlPoints.length - 1), resolution = 25;
                 let pos, nextPos, segment, circ;
                 for (let i = 0; i < subdivisions; i++) {
                     pos = this.getPos(i / subdivisions);
