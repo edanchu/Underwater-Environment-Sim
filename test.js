@@ -84,7 +84,7 @@ export class Test extends Component {
     this.sceneObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand3, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
     this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
@@ -109,6 +109,9 @@ export class Test extends Component {
     const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(10, 25, 10)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
     this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 1650));
 
+    const pkelp2 = new utils.SceneObject(this.shapes.kelp2, this.materials.pkelp2, Mat4.translation(0, -82.6, 0).times(Mat4.scale(1, 3, 1)), "kelp2", "deferred", "TRIANGLES", true, this.materials.pkelpShadow2);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp2, "pkelp", 2000));
+
     this.spawnCrabs();
   }
 
@@ -128,6 +131,7 @@ export class Test extends Component {
     this.shapes.crab = new utils.BlendShape(crab1, crab2);
 
     this.shapes.kelp = new defs.Shape_From_File('assets/meshes/kelp/kelp.obj');
+    this.shapes.kelp2 = new defs.Shape_From_File('assets/meshes/kelp/kelp2.obj');
   }
 
   createMaterials() {
@@ -164,7 +168,11 @@ export class Test extends Component {
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
     this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.9, metallic: 0.25, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
-    this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.3 };
+    this.materials.pkelp2 = { shader: new shaders.KelpGeometryShader2(), texAlbedo: this.textures.kelp2, roughness: 0.5, metallic: 0.25, ambient: 0.3 };
+    this.materials.pkelpShadow2 = { shader: new shaders.ShadowShaderKelp2(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.15 };
+    this.materials.sand2 = { shader: new shaders.SandShader2(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 70.0, ambientScale: 1.0, texGamma: 3.2, texAlbedo2: this.textures.sandDg, texARM2: this.textures.sandARMg, texNormal2: this.textures.sandNg, textureScale2: 110.0 };
+    this.materials.sand3 = { shader: new shaders.GeometryShaderTextured(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 110.0, ambientScale: 6.5, texGamma: 2.2 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
@@ -184,7 +192,14 @@ export class Test extends Component {
     this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
     this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
     this.textures.kelp = new Texture('/assets/meshes/kelp/kelpAlbedo.jpg');
+    this.textures.kelp2 = new Texture('/assets/meshes/kelp/kelp2Albedo.png');
     this.textures.sand = new Texture('/assets/textures/sand/beach_sand.png');
+    this.textures.sandD = new Texture('/assets/textures/sand/aerial_diff.png');
+    this.textures.sandARM = new Texture('/assets/textures/sand/aerial_arm.png');
+    this.textures.sandN = new Texture('/assets/textures/sand/aerial_norm.png');
+    this.textures.sandDg = new Texture('/assets/textures/sand/sand_g_d.png');
+    this.textures.sandARMg = new Texture('/assets/textures/sand/sand_g_arm.png');
+    this.textures.sandNg = new Texture('/assets/textures/sand/sand_g_n.png');
   }
 
   firstTimeSetup(context) {
