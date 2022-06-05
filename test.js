@@ -138,7 +138,7 @@ export class Test extends Component {
     this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), caustics: this.textures.caustic, gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
-    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 2.0, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
+    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 3.2, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
     this.materials.volumeMat = { shader: new shaders.VolumetricShader(), pGen2: () => this.pTextures.pGen2, lightDepthTexture: () => this.lightDepthTexture, sunViewOrig: () => this.sunViewOrig, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
     this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
@@ -162,7 +162,7 @@ export class Test extends Component {
     };
 
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
-    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.8, metallic: 0.35, ambient: 0.7 };
+    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.9, metallic: 0.25, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.3 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };

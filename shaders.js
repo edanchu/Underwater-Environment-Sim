@@ -578,6 +578,8 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
     context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
     context.uniformMatrix4fv(gpu_addresses.normalMatrix, false, Matrix.flatten_2D_to_1D(Mat4.inverse(model_transform)));
 
+    context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
     material.texAlbedo.activate(context, 1);
     context.uniform1i(gpu_addresses.texAlbedo, 1);
 
@@ -585,33 +587,16 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
     context.uniform1f(gpu_addresses.roughness, material.roughness);
     context.uniform1f(gpu_addresses.ambient, material.ambient);
     context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
   }
 
   shared_glsl_code() {
     return `#version 300 es
     precision highp float;
-`;
-  }
-
-  vertex_glsl_code() {
-    return this.shared_glsl_code() + `
-    
-    in vec3 position;  
-    in vec3 normal;
-    in vec2 texture_coord;
-    in vec2 offset_1;
-
-    out vec3 vPos;
-    out vec3 vNorm;
-    out vec2 vUV;
-
-    uniform mat4 projection_camera_transform;
-    uniform mat4 modelTransform;
-    uniform mat4 normalMatrix;
-    uniform float time;
 
     float random (vec2 value){
-        return fract(sin(dot(value, vec2(94.8365, 47.053))) * 94762.9342);
+      return fract(sin(dot(value, vec2(94.8365, 47.053))) * 94762.9342);
     }
 
     float lerp(float a, float b, float percent){
@@ -652,6 +637,25 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
 
         return outVal;
     }
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+    in vec3 normal;
+    in vec2 texture_coord;
+    in vec2 offset_1;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+
+    uniform mat4 projection_camera_transform;
+    uniform mat4 modelTransform;
+    uniform mat4 normalMatrix;
+    uniform float time;
 
     void main() { 
       float speed = 1.0;
@@ -687,10 +691,17 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
     uniform float roughness;
     uniform float ambient;
 
+    uniform float slider;
+
     uniform vec3 cameraCenter;
 
     void main() {
         vec3 albedo = texture(texAlbedo, vUV).rgb;
+
+        if (length(vPos.xyz - cameraCenter) < 12.0 && mod(floor(gl_FragCoord.xy / 1.0), vec2(2.0)) == vec2(0.0)){
+          discard;
+          return;
+        }
 
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
@@ -2538,7 +2549,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
           float stepDensity = density * stepSize;
           float transmittance = min(exp(-totalDensity), 1.0);
           vec3 lightCol = pow(vec3(0.944, 0.984, 0.991), max(vec3(20.0 - pos.y), 0.0) + 35.0) * lightColor.xyz;
-          float gFactor = mix(-slider, -1.0, clamp(abs(pos.y)/80.0, 0.0, 1.0));
+          float gFactor = mix(-0.35, -1.0, clamp(abs(pos.y)/80.0, 0.0, 1.0));
           if (pos.y > 20.0) gFactor = -1.0;
           fog += min(vec3(mieScattering(dot(rayDir, -lightDir), gFactor)) * lightCol * calcShadow(pos) * stepDensity * transmittance, 1.0/float(steps));
 
@@ -2563,7 +2574,7 @@ shaders.VolumetricShader = class VolumetricShader extends tiny.Shader {
         vec3 position = worldFromDepth(texelFetch(lDepth, fragCoord, 0).x);
         vec3 albedo = texelFetch(lAlbedo, fragCoord, 0).xyz;
 
-        vec4 fog = calculateVolumetricFog(position, 25);
+        vec4 fog = calculateVolumetricFog(position, 35);
 
         FragColor = vec4(fog.xyz, 1.0);
     }
