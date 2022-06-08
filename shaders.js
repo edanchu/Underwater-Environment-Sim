@@ -1052,6 +1052,159 @@ shaders.KelpGeometryShader2 = class KelpGeometryShader2 extends tiny.Shader {
   }
 }
 
+shaders.TubeCoralShader = class TubeCoralShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PC = P.times(C);
+    context.uniformMatrix4fv(gpu_addresses.projection_camera_transform, false, Matrix.flatten_2D_to_1D(PC.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+    context.uniformMatrix4fv(gpu_addresses.normalMatrix, false, Matrix.flatten_2D_to_1D(Mat4.inverse(model_transform)));
+
+    context.uniform3fv(gpu_addresses.cameraCenter, uniforms.camera_transform.times(vec4(0, 0, 0, 1)).to3());
+
+    material.texAlbedo.activate(context, 1);
+    context.uniform1i(gpu_addresses.texAlbedo, 1);
+
+    context.uniform1f(gpu_addresses.metallic, material.metallic);
+    context.uniform1f(gpu_addresses.roughness, material.roughness);
+    context.uniform1f(gpu_addresses.ambient, material.ambient);
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+
+    context.uniform1f(gpu_addresses.slider, document.getElementById("sld2").value);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+
+    float random (vec2 value){
+      return fract(sin(dot(value, vec2(94.8365, 47.053))) * 94762.9342);
+    }
+
+    float lerp(float a, float b, float percent){
+        return (1.0 - percent) * a + (percent * b);
+    }
+
+    float perlinNoise (vec2 value){
+      vec2 integer = floor(value);
+      vec2 fractional = fract(value);
+      fractional = fractional * fractional * (3.0 - 2.0 * fractional);
+
+      value = abs(fract(value) - 0.5);
+      float currCell = random(integer + vec2(0.0, 0.0));
+      float rightCell = random(integer + vec2(1.0, 0.0));
+      float bottomCell = random(integer + vec2(0.0, 1.0));
+      float bottomRightCell = random(integer + vec2(1.0, 1.0));
+
+      float currRow = lerp(currCell, rightCell, fractional.x);
+      float lowerRow = lerp(bottomCell, bottomRightCell, fractional.x);
+      float lerpedRandomVal = lerp(currRow, lowerRow, fractional.y);
+      return lerpedRandomVal;
+    }
+
+    float PerlinNoise3Pass(vec2 value, float Scale){
+        float outVal = 0.0;
+
+        float frequency = pow(2.0, 0.0);
+        float amplitude = pow(0.5, 3.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        frequency = pow(2.0, 1.0);
+        amplitude = pow(0.5, 2.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        frequency = pow(2.0, 2.0);
+        amplitude = pow(0.5, 1.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        return outVal;
+    }
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+    in vec3 normal;
+    in vec2 texture_coord;
+    in vec2 offset_1;
+
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec2 vUV;
+    out float vRand;
+
+    uniform mat4 projection_camera_transform;
+    uniform mat4 modelTransform;
+    uniform mat4 normalMatrix;
+    uniform float time;
+
+    void main() { 
+      vPos = (modelTransform * vec4(position.xyz, 1.0)).xyz + vec3(offset_1.x, 0, offset_1.y);
+      gl_Position = projection_camera_transform * vec4( vPos, 1.0);
+      vNorm = normalize(mat3(normalMatrix) * normal);
+      vUV = texture_coord;
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+    layout(location = 0) out vec4 FragPosition;
+    layout(location = 1) out vec4 FragNormal;
+    layout(location = 2) out vec4 FragAlbedo;
+    layout(location = 3) out vec4 FragSpecular;
+
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec2 vUV;
+    in float vRand;
+
+    uniform sampler2D texAlbedo;
+    uniform float metallic;
+    uniform float roughness;
+    uniform float ambient;
+
+    uniform float slider;
+
+    uniform vec3 cameraCenter;
+
+    // from https://newbedev.com/from-rgb-to-hsv-in-opengl-glsl
+    vec3 rgb2hsv(vec3 c){
+      vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+      vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+      vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+      float d = q.x - min(q.w, q.y);
+      float e = 1.0e-10;
+      return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+
+    // from https://newbedev.com/from-rgb-to-hsv-in-opengl-glsl
+    vec3 hsv2rgb(vec3 c){
+        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main() {
+        vec3 albedo = texture(texAlbedo, vUV).rgb;
+
+        
+        //hsv tonemapping
+        // albedo = rgb2hsv(albedo);
+        // albedo.r *= vRand / 3.0;
+        // albedo = hsv2rgb(albedo);
+
+        FragPosition = vec4(vPos, 1.0);
+        FragNormal = vec4(normalize(vNorm), 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz * 1.3, vec3(1.2)), 1.0);
+        FragSpecular = vec4(roughness, ambient, 1.0, metallic);
+    }
+    `;
+  }
+}
+
+
 shaders.GeometryShaderTexturedMinimalBlendShape = class GeometryShaderTexturedMinimalBlendShape extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform], PCM = P.times(C).times(M);
@@ -2814,6 +2967,92 @@ shaders.ShadowShaderKelp2 = class ShadowShaderKelp2 extends tiny.Shader {
     `;
   }
 }
+
+shaders.TubeCoralShadowShader = class TubeCoralShadowShader extends tiny.Shader {
+  update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
+    context.uniformMatrix4fv(gpu_addresses.projView, false, Matrix.flatten_2D_to_1D(material.proj().times(material.view()).transposed()));
+    context.uniformMatrix4fv(gpu_addresses.modelTransform, false, Matrix.flatten_2D_to_1D(model_transform.transposed()));
+
+    context.uniform1f(gpu_addresses.time, uniforms.animation_time / 1000);
+  }
+
+  shared_glsl_code() {
+    return `#version 300 es
+    precision highp float;
+`;
+  }
+
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
+    
+    in vec3 position;  
+    in vec2 offset_1;
+
+    uniform mat4 projView;
+    uniform mat4 modelTransform;
+
+    uniform float time;
+
+    float random (vec2 value){
+        return fract(sin(dot(value, vec2(94.8365, 47.053))) * 94762.9342);
+    }
+
+    float lerp(float a, float b, float percent){
+        return (1.0 - percent) * a + (percent * b);
+    }
+
+    float perlinNoise (vec2 value){
+      vec2 integer = floor(value);
+      vec2 fractional = fract(value);
+      fractional = fractional * fractional * (3.0 - 2.0 * fractional);
+
+      value = abs(fract(value) - 0.5);
+      float currCell = random(integer + vec2(0.0, 0.0));
+      float rightCell = random(integer + vec2(1.0, 0.0));
+      float bottomCell = random(integer + vec2(0.0, 1.0));
+      float bottomRightCell = random(integer + vec2(1.0, 1.0));
+
+      float currRow = lerp(currCell, rightCell, fractional.x);
+      float lowerRow = lerp(bottomCell, bottomRightCell, fractional.x);
+      float lerpedRandomVal = lerp(currRow, lowerRow, fractional.y);
+      return lerpedRandomVal;
+    }
+
+    float PerlinNoise3Pass(vec2 value, float Scale){
+        float outVal = 0.0;
+
+        float frequency = pow(2.0, 0.0);
+        float amplitude = pow(0.5, 3.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        frequency = pow(2.0, 1.0);
+        amplitude = pow(0.5, 2.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        frequency = pow(2.0, 2.0);
+        amplitude = pow(0.5, 1.0);
+        outVal += perlinNoise(vec2(value.x * Scale / frequency, value.y * Scale / frequency)) * amplitude;
+
+        return outVal;
+    }
+
+    void main() { 
+      gl_Position = projView * (modelTransform * vec4(position.xyz, 1.0) + vec4(offset_1.x, 0, offset_1.y, 0));
+    }`;
+  }
+
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
+
+    out vec4 FragColor;
+
+    void main(){
+      FragColor = vec4(1,1,1,1);
+    }
+    `;
+  }
+}
+
 
 shaders.ShadowShaderBlendShape = class ShadowShaderBlendShape extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {

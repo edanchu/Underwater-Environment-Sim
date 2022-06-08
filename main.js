@@ -109,8 +109,14 @@ export class Test extends Component {
     const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(10, 25, 10)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
     this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 1650));
 
-    const pkelp2 = new utils.SceneObject(this.shapes.kelp2, this.materials.pkelp2, Mat4.translation(0, -82.6, 0).times(Mat4.scale(1, 3, 1)), "kelp2", "deferred", "TRIANGLES", true, this.materials.pkelpShadow2);
-    this.sceneObjects.push(new objects.instancedKelpController(pkelp2, "pkelp", 2000));
+    const pkelp2 = new utils.SceneObject(this.shapes.kelp2, this.materials.pkelp2, Mat4.translation(0, -83.6, 0).times(Mat4.scale(1, 3, 1)), "kelp2", "deferred", "TRIANGLES", true, this.materials.pkelpShadow2);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp2, "pkelp", 200));
+
+    // const coral = new utils.SceneObject(this.shapes.coral, this.materials.coral, Mat4.translation(0, -82.6, 0).times(Mat4.scale(1, 1, 1)), "coral", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    // this.sceneObjects.push(new objects.instancedKelpController(coral, "coral", 1000));
+
+    const tubecoral = new utils.SceneObject(this.shapes.tubecoral, this.materials.tubecoral, Mat4.translation(0, -83, 0).times(Mat4.scale(1.3, 1.8, 1.3)), "coral", "deferred", "TRIANGLES", true, this.materials.tubecoralshadow);
+    this.sceneObjects.push(new objects.instancedKelpController(tubecoral, "tubecoral", 200));
 
     this.spawnCrabs();
   }
@@ -132,6 +138,9 @@ export class Test extends Component {
 
     this.shapes.kelp = new defs.Shape_From_File('assets/meshes/kelp/kelp.obj');
     this.shapes.kelp2 = new defs.Shape_From_File('assets/meshes/kelp/kelp2.obj');
+
+    this.shapes.coral = new defs.Shape_From_File('assets/meshes/coral/coralsmall.obj');
+    this.shapes.tubecoral = new defs.Shape_From_File('assets/meshes/coral/tube.obj');
   }
 
   createMaterials() {
@@ -166,10 +175,13 @@ export class Test extends Component {
     };
 
     this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    this.materials.coral = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.coral, roughness: 0.5, metallic: 0.25, ambient: 0.7 };
+    this.materials.tubecoral = { shader: new shaders.TubeCoralShader(), texAlbedo: this.textures.tubecoral, roughness: 0.5, metallic: 0.25, ambient: 0.7 };
     this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.9, metallic: 0.25, ambient: 0.7 };
     this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.pkelp2 = { shader: new shaders.KelpGeometryShader2(), texAlbedo: this.textures.kelp2, roughness: 0.5, metallic: 0.25, ambient: 0.3 };
     this.materials.pkelpShadow2 = { shader: new shaders.ShadowShaderKelp2(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.tubecoralshadow = { shader: new shaders.TubeCoralShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.15 };
     this.materials.sand2 = { shader: new shaders.SandShader2(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 70.0, ambientScale: 1.0, texGamma: 3.2, texAlbedo2: this.textures.sandDg, texARM2: this.textures.sandARMg, texNormal2: this.textures.sandNg, textureScale2: 110.0 };
     this.materials.sand3 = { shader: new shaders.GeometryShaderTextured(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 110.0, ambientScale: 6.5, texGamma: 2.2 };
@@ -200,6 +212,8 @@ export class Test extends Component {
     this.textures.sandDg = new Texture('/assets/textures/sand/sand_g_d.png');
     this.textures.sandARMg = new Texture('/assets/textures/sand/sand_g_arm.png');
     this.textures.sandNg = new Texture('/assets/textures/sand/sand_g_n.png');
+    this.textures.coral = new Texture('/assets/meshes/coral/coralsmall.png');
+    this.textures.tubecoral = new Texture('/assets/meshes/coral/tubetex.png');
   }
 
   firstTimeSetup(context) {
