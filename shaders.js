@@ -746,7 +746,7 @@ shaders.SandShader2 = class SandShader2 extends tiny.Shader {
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normal, 1.0);
         FragAlbedo = vec4(pow(albedo, vec3(texGamma)), 1.0);
-        FragSpecular = vec4(roughness, ao * ambientScale, 1.0, metalness);
+        FragSpecular = vec4(0.8, ao * ambientScale, 1.0, 0.35);
     }
     
     `;
@@ -887,7 +887,7 @@ shaders.KelpGeometryShader = class KelpGeometryShader extends tiny.Shader {
 
         FragPosition = vec4(vPos, 1.0);
         FragNormal = vec4(normalize(vNorm), 1.0);
-        FragAlbedo = vec4(pow(albedo.xyz / 1.5, vec3(2.2)), 1.0);
+        FragAlbedo = vec4(pow(albedo.xyz / 1.1, vec3(2.2)), 1.0);
         FragSpecular = vec4(roughness, ambient, 1.0, metallic);
     }
     `;
