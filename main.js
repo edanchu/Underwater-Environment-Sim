@@ -84,7 +84,7 @@ export class Test extends Component {
     this.sceneObjects = [];
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand3, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
     this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
@@ -111,6 +111,9 @@ export class Test extends Component {
 
     const pkelp2 = new utils.SceneObject(this.shapes.kelp2, this.materials.pkelp2, Mat4.translation(0, -83.6, 0).times(Mat4.scale(1, 3, 1)), "kelp2", "deferred", "TRIANGLES", true, this.materials.pkelpShadow2);
     this.sceneObjects.push(new objects.instancedKelpController(pkelp2, "pkelp", 200));
+
+    // const coral = new utils.SceneObject(this.shapes.coral, this.materials.coral, Mat4.translation(0, -82.6, 0).times(Mat4.scale(1, 1, 1)), "coral", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    // this.sceneObjects.push(new objects.instancedKelpController(coral, "coral", 1000));
 
     const tubecoral = new utils.SceneObject(this.shapes.tubecoral, this.materials.tubecoral, Mat4.translation(0, -83, 0).times(Mat4.scale(1.3, 1.8, 1.3)), "coral", "deferred", "TRIANGLES", true, this.materials.tubecoralshadow);
     this.sceneObjects.push(new objects.instancedKelpController(tubecoral, "tubecoral", 200));
