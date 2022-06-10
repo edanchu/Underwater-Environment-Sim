@@ -120,11 +120,11 @@ export class Test extends Component {
       context.controls.feed = false;
     }
 
-    if (this.whenToDistort % 256 === 0) {
-      for (var i = 0; i < 20; i++) {
-        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.1, (i & 1) ? 0.03 : -0.03);
-      }
-    }
+    // if (this.whenToDistort % 256 === 0) {
+    //   for (var i = 0; i < 20; i++) {
+    //     this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.1, (i & 1) ? 0.03 : -0.03);
+    //   }
+    // }
 
     //draw light depth buffer for sun shadows
     this.drawSunShadows(context);
@@ -794,10 +794,20 @@ export class Test extends Component {
   }
 
   render_controls() {
+    this.key_triggered_button("Random drop", ["l"], () => {
+      this.waterSim.drop(this.context, clamp(-1, randn_bm(), 1), clamp(-1, randn_bm(), 1), 0.1, (parseInt(Math.random() * 20) & 1) ? -0.03 : 0.03);
+    }, "green");
     this.key_triggered_button("Pause movement", ["p"], () => this.paused = !this.paused);
     this.new_line();
   }
 
+}
+
+function randn_bm() {
+  var u = 0, v = 0;
+  while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+  while(v === 0) v = Math.random();
+  return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
 }
 
 function clamp(x, y, z) {
