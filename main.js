@@ -794,7 +794,7 @@ export class Test extends Component {
   }
 
   render_controls() {
-    this.key_triggered_button("Random drop", ["l"], () => {
+    this.key_triggered_button("Random waves (need to hold down)", ["l"], () => {
       this.waterSim.drop(this.context, clamp(-1, randn_bm(), 1), clamp(-1, randn_bm(), 1), 0.1, (parseInt(Math.random() * 20) & 1) ? -0.03 : 0.03);
     }, "green");
     this.key_triggered_button("Pause movement", ["p"], () => this.paused = !this.paused);
