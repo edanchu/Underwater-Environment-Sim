@@ -453,7 +453,7 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         float ratio = 1.3325;
         vec3 I = normalize(vertexWorldspace - cameraCenter);
         vec3 R = refract(I, normalize(normal), ratio);
-        FragColor = vec4(texture(sky, -R).rgb * 2.6, 1.0);
+        FragColor = vec4(texture(sky, -R).rgb + 1.0, 1.0);
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));

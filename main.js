@@ -159,7 +159,7 @@ export class Test extends Component {
     //this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
     this.sceneObjects.push(new objects.WaterPlane(this.shapes.waterPlane, this.materials.water, this.waterPlaneTransf, "water", "forward", "TRIANGLES", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand3, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
     this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
@@ -805,9 +805,9 @@ export class Test extends Component {
 
 function randn_bm() {
   var u = 0, v = 0;
-  while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-  while(v === 0) v = Math.random();
-  return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+  while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
 function clamp(x, y, z) {
