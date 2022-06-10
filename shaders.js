@@ -309,6 +309,11 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, material.waterParticles);
     gl.uniform1i(gpu_addresses.particles, 3);
+
+    let sky = material.sky();
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, sky);
+    gl.uniform1i(gpu_addresses.sky, 4);
   }
 
   shared_glsl_code() {
@@ -320,27 +325,25 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
   vertex_glsl_code() {
     return this.shared_glsl_code() + `
       in vec3 position;
-      in vec3 normal;   
-      in vec2 texture_coord;    
+      //in vec3 normal;   
+      //in vec2 texture_coord;    
       
       uniform sampler2D particles;
 
       uniform mat4 projection_camera_transform;
       uniform mat4 modelTransform;
       uniform mat4 viewMatrix;
-      uniform vec3 cameraCenter;
-      uniform float planeSize;
 
       out vec3 vertexWorldspace;
       out vec3 localPosition;
       out vec2 texCoord;
 
       void main() {
-        texCoord = texture_coord; // + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
+        texCoord = position.xy * 0.5 + 0.5;
 
         // Distort the position:
         vec4 particle = texture(particles, texCoord);
-        vec3 newPos   = position;
+        vec3 newPos   = position.xzy;
         newPos.y     += particle.r;
 
         localPosition = newPos;
@@ -354,11 +357,16 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
 
   fragment_glsl_code() {
     return this.shared_glsl_code() + `
+      const float IOR_AIR = 1.0;
+      const float IOR_WATER = 1.333;
+      const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+
       out vec4 FragColor;
 
       uniform sampler2D waterFlow;
       uniform sampler2D waterDerivativeHeight;
       uniform sampler2D particles;
+      uniform samplerCube sky;
       uniform float time;
       uniform vec4 color;
       uniform vec3 cameraCenter;
@@ -366,6 +374,29 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       in vec3 vertexWorldspace;
       in vec3 localPosition;
       in vec2 texCoord;
+
+      vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
+        /*
+        vec3 color;
+        if (ray.y < 0.0) {
+          vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
+          color = vec3(getWallColor(origin + ray * t.y);
+        } else {
+          vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
+          vec3 hit = origin + ray * t.y;
+          if (hit.y < 2.0 / 12.0) {
+            color = getWallColor(hit);
+          } else {
+            color = textureCube(sky, ray).rgb;
+            color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+          }
+        }
+        if (ray.y < 0.0) color *= waterColor;
+        return color;
+        */
+
+        return texture(sky, ray).rgb;
+      }
 
       vec3 Distort (vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB) {
           float phaseOffset = flowB ? 0.5 : 0.0;
@@ -392,8 +423,8 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 uvwA = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
         vec3 uvwB = Distort(texCoord, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
         float heightScale = (flow.z * 0.25 + 0.75) * 0.2;
-        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
-        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
+        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy * 2.0)) * uvwA.z * heightScale;
+        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy * 2.0)) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
         vec3 textNormal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
 
@@ -407,11 +438,20 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
 
         vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
 
+        
         if (normal == vec3(0.0, 1.0, 0.0)) {
             normal = textNormal;
         } else {
-            normal = mix(normal, textNormal, 0.4);
+            normal = normalize(textNormal + normal);
         }
+        
+
+        //normal;
+
+        float ratio = 1.3325;
+        vec3 I = normalize(vertexWorldspace - cameraCenter);
+        vec3 R = refract(I, normalize(normal), ratio);
+        FragColor = vec4(texture(sky, -R).rgb * 2.6, 1.0);
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));
@@ -422,8 +462,12 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 2.0, clamp(1.0 - pow(1.0 - (vertexWorldspace.y - cameraCenter.y) / 400.0, 2.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
         vec3 finColor = b * mix(color.xyz, vec3(3,3,3), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
+
+        if (R.y == 0.0) {
+          FragColor = vec4(waterColor, 1.0);
+        }
         
-        FragColor = vec4(finColor, 1.0);
+        //FragColor = vec4(finColor, 1.0);
       }`;
   }
 };

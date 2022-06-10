@@ -296,6 +296,8 @@ const Texture = tiny.Texture =
             if (!this.gpu_instances) this.gpu_instances = new Map();     // Track which GPU contexts this object has
             // copied itself onto.
 
+            this.ready = false;
+
             // Create a new HTML Image object:
             this.image = new Image();
             this.image.onload = () => this.ready = true;

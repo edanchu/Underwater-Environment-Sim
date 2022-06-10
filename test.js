@@ -24,6 +24,8 @@ export class Test extends Component {
     this.pTextures = {};
     this.lightDepthTexture = null;
 
+    this.cubemapsLoaded = false;
+
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
     this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
   }
@@ -33,7 +35,7 @@ export class Test extends Component {
 
     // Construct the water sim:
     this.waterSim    = new WaterSim(gl, 2048, 2048);
-    this.waterShader = new shaders.WaterMeshShader();
+    this.waterShader = new shaders.WaterSurfaceShader(); //shaders.WaterMeshShader();
 
     this.waterMaterial = {
       shader:        this.waterShader,
@@ -55,6 +57,12 @@ export class Test extends Component {
 
     if (!context.controls /*checks if first animated frame*/) {
       this.firstTimeSetup(context);
+    }
+
+    if (!this.cubemapsLoaded) {
+      if (this.createCubemap(gl)) {
+        this.cubemapsLoaded = true;
+      }
     }
 
     const t = this.t = this.uniforms.animation_time / 1000;
@@ -91,7 +99,7 @@ export class Test extends Component {
     this.waterSim.normals(gl);
 
     // Get the water particle texture:
-    this.materials.water.texture = this.waterSim.particleTexture(); //waterParticles = this.waterSim.particleTexture();
+    this.materials.water.waterParticles = this.waterSim.particleTexture();
     this.materials.water.lightPosition = vec3(100, -20, 100);
 
     this.whenToDistort += 1;
@@ -106,11 +114,11 @@ export class Test extends Component {
       context.controls.feed = false;
     }
 
-    // if (this.whenToDistort % 256 === 0) {
-    //   for (var i = 0; i < 20; i++) {
-    //     this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
-    //   }
-    // }
+    if (this.whenToDistort % 256 === 0) {
+      for (var i = 0; i < 20; i++) {
+        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.1, (i & 1) ? 0.03 : -0.03);
+      }
+    }
 
     //draw light depth buffer for sun shadows
     this.drawSunShadows(context);
@@ -163,6 +171,33 @@ export class Test extends Component {
     this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
   }
 
+  createCubemap(gl) {
+    if (!(this.cubemapTextures.xneg.ready && this.cubemapTextures.xpos.ready && this.cubemapTextures.yneg.ready
+      && this.cubemapTextures.ypos.ready && this.cubemapTextures.zneg.ready && this.cubemapTextures.zpos.ready)) {
+        return false;
+    }
+
+    let xneg_org = this.cubemapTextures.xneg;
+    let xneg_new = document.getElementById("xneg");
+
+    this.cubemap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.cubemap);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.xneg.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.xpos.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.yneg.image); // yneg
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.ypos.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.zneg.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.zpos.image);
+
+    return true;
+  }
+
   createShapes() {
     this.shapes = {};
     this.planeSize = 300;
@@ -195,9 +230,10 @@ export class Test extends Component {
     this.materials.sharkShadow = { shader: new shaders.SharkShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
-      shader: new shaders.WaterMeshShader(), //new shaders.WaterSurfaceShader(),
+      shader: new shaders.WaterSurfaceShader(), //new shaders.WaterMeshShader(),
       color: color(0.3, 0.7, 1, 1),
       gTextures: () => this.gTextures,
+      sky: () => this.cubemap,
       waterFlow: new Texture('assets/textures/water/flow_speed_noise.png'),
       waterDerivativeHeight: new Texture('assets/textures/water/water_derivative_height.png'),
       waterParticles: null, // the texture that points to the water particles that we render
@@ -224,6 +260,16 @@ export class Test extends Component {
     this.textures.fish2 = new Texture('assets/meshes/trout/trout2.png');
     this.textures.fish3 = new Texture('assets/meshes/trout/trout3.png');
     this.textures.fish4 = new Texture('assets/meshes/trout/trout4.png');
+
+    // Cube map texture:
+    this.cubemapTextures = {
+      xneg: new Texture("assets/textures/water_cubemap/xneg.jpg"),
+      xpos: new Texture("assets/textures/water_cubemap/xpos.jpg"),
+      yneg: new Texture("assets/textures/water_cubemap/yneg.jpg"),
+      ypos: new Texture("assets/textures/water_cubemap/ypos.jpg"),
+      zneg: new Texture("assets/textures/water_cubemap/zpos.jpg"),
+      zpos: new Texture("assets/textures/water_cubemap/zneg.jpg"),
+    };
   }
 
   firstTimeSetup(context) {
