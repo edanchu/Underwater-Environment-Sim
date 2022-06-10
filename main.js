@@ -1,5 +1,4 @@
 import { tiny, defs } from './examples/common.js';
-import { Quaternion, quat } from './Quaternion.js';
 import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
@@ -10,6 +9,7 @@ const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 
 export class Test extends Component {
   init() {
+
     this.waterPlaneTransf = Mat4.translation(0, 20, 0).times(Mat4.scale(300, 70, 300));
     this.waterPlaneTransfInv = Mat4.scale(1/300, 1/70, 1/300).times(Mat4.translation(0, -20, 0));
 
@@ -25,6 +25,7 @@ export class Test extends Component {
     this.lightDepthTexture = null;
 
     this.cubemapsLoaded = false;
+    this.paused = false;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
     this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
@@ -52,7 +53,6 @@ export class Test extends Component {
 
   render_animation(context) {
     const gl = context.context;
-
     if (this.textures.HDRI.ready != true) return;
 
     if (!context.controls /*checks if first animated frame*/) {
@@ -64,15 +64,21 @@ export class Test extends Component {
         this.cubemapsLoaded = true;
       }
     }
-
+    
     const t = this.t = this.uniforms.animation_time / 1000;
     const dt = this.dt = this.uniforms.animation_delta_time / 1000;
 
-    const fixedTimeStep = 0.001;
-    for (let i = 0; i < dt; i += fixedTimeStep) {
-      this.sceneObjects.map((x) => x.fixedUpdate(this.sceneObjects, this.uniforms, fixedTimeStep));
+    if (!this.paused) {
+
+      const fixedTimeStep = 0.001;
+      for (let i = 0; i < dt; i += fixedTimeStep) {
+        this.sceneObjects.map((x) => x.fixedUpdate(this.sceneObjects, this.uniforms, fixedTimeStep));
+      }
+      this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
     }
-    this.sceneObjects.map((x) => x.update(this.sceneObjects, this.uniforms, dt));
+    else {
+      this.uniforms.animation_time -= this.uniforms.animation_delta_time;
+    }
 
     this.render(context);
   }
@@ -142,7 +148,7 @@ export class Test extends Component {
     //postprocess
     this.depthFogPass(context);
     this.volumePass(context);
-    this.bloom(5, context);
+    this.bloom(3, context);
 
     // //copy to screen
     this.drawToScreen(context);
@@ -155,20 +161,39 @@ export class Test extends Component {
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
     // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
 
-    const sceneBounds = [[-125, 125], [-75, 15], [-125, 125]];
+    this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
-    const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.identity(), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
-    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), sceneBounds));
-    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), sceneBounds));
+    const trout = new objects.trout(this.shapes.trout, this.materials.trout, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout2 = new objects.trout(this.shapes.trout, this.materials.trout2, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout3 = new objects.trout(this.shapes.trout, this.materials.trout3, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    const trout4 = new objects.trout(this.shapes.trout, this.materials.trout4, Mat4.scale(1, 1, 1.2), "trout", "deferred", "TRIANGLES", true, this.materials.fishShadow);
+    this.sceneObjects.push(new objects.boidsController(trout, "boids1", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout2, "boids2", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout3, "boids3", 5, 35, vec3(0, 0, 0), this.sceneBounds));
+    this.sceneObjects.push(new objects.boidsController(trout4, "boids4", 5, 35, vec3(0, 0, 0), this.sceneBounds));
 
     const shark = new utils.SceneObject(this.shapes.shark, this.materials.shark, Mat4.scale(5, 5, 5), "shark", "deferred", "TRIANGLES", true, this.materials.sharkShadow);
-    this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
-    this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), sceneBounds));
+    this.sceneObjects.push(new objects.predator(shark, "shark1", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), this.sceneBounds));
+    this.sceneObjects.push(new objects.predator(shark, "shark2", Mat4.translation((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 50 - 30, (Math.random() - 0.5) * 120), this.sceneBounds));
+
+
+    // this.sceneObjects.push(new objects.kelpController("kelp", 20, this.sceneBounds, this.materials.kelp, this.materials.basicShadow, 30));
+    // this.sceneObjects.push(new objects.kelpController("kelp", 20, this.sceneBounds, this.materials.kelp, this.materials.basicShadow, 150));
+
+
+    const pkelp = new utils.SceneObject(this.shapes.kelp, this.materials.pkelp, Mat4.translation(0, -40, 0).times(Mat4.scale(10, 25, 10)), "kelp1", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp, "pkelp", 1650));
+
+    const pkelp2 = new utils.SceneObject(this.shapes.kelp2, this.materials.pkelp2, Mat4.translation(0, -83.6, 0).times(Mat4.scale(1, 3, 1)), "kelp2", "deferred", "TRIANGLES", true, this.materials.pkelpShadow2);
+    this.sceneObjects.push(new objects.instancedKelpController(pkelp2, "pkelp", 200));
+
+    // const coral = new utils.SceneObject(this.shapes.coral, this.materials.coral, Mat4.translation(0, -82.6, 0).times(Mat4.scale(1, 1, 1)), "coral", "deferred", "TRIANGLES", true, this.materials.pkelpShadow);
+    // this.sceneObjects.push(new objects.instancedKelpController(coral, "coral", 1000));
+
+    const tubecoral = new utils.SceneObject(this.shapes.tubecoral, this.materials.tubecoral, Mat4.translation(0, -83, 0).times(Mat4.scale(1.3, 1.8, 1.3)), "coral", "deferred", "TRIANGLES", true, this.materials.tubecoralshadow);
+    this.sceneObjects.push(new objects.instancedKelpController(tubecoral, "tubecoral", 200));
+
+    this.spawnCrabs();
   }
 
   createCubemap(gl) {
@@ -201,15 +226,26 @@ export class Test extends Component {
   createShapes() {
     this.shapes = {};
     this.planeSize = 300;
+
     this.shapes.ball = new defs.Subdivision_Sphere(6);
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
     this.shapes.cube = new defs.Cube();
-    this.shapes.orca = new defs.Shape_From_File("assets/meshes/orca/orca.obj");
+
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
     this.shapes.waterPlane = new WaterPlane2(200, 200);
+
+    const crab1 = new defs.Shape_From_File('assets/meshes/crab/crab1.obj');
+    const crab2 = new defs.Shape_From_File('assets/meshes/crab/crab2.obj');
+    this.shapes.crab = new utils.BlendShape(crab1, crab2);
+
+    this.shapes.kelp = new defs.Shape_From_File('assets/meshes/kelp/kelp.obj');
+    this.shapes.kelp2 = new defs.Shape_From_File('assets/meshes/kelp/kelp2.obj');
+
+    this.shapes.coral = new defs.Shape_From_File('assets/meshes/coral/coralsmall.obj');
+    this.shapes.tubecoral = new defs.Shape_From_File('assets/meshes/coral/tube.obj');
   }
 
   createMaterials() {
@@ -217,10 +253,10 @@ export class Test extends Component {
     this.materials.plastic = { shader: new defs.Phong_Shader(), ambient: .2, diffusivity: 1, specularity: .5, color: vec4(0.9, 0.5, 0.9, 1.0) };
 
     this.materials.geometryMaterial = { shader: new shaders.GeometryShader(), color: vec4(0.5, 0.5, 0.5, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) };
-    this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
+    this.materials.directionalLightingMaterial = { shader: new shaders.DirectionalLightShader(), caustics: this.textures.caustic, gTextures: () => this.gTextures, index: null, lightDepthTexture: () => this.lightDepthTexture, sunView: () => this.sunView, sunProj: () => this.sunProj };
     this.materials.ambientMaterial = { shader: new shaders.AmbientLightShader(), gTextures: () => this.gTextures, cTextures: () => this.cTextures };
     this.materials.brightCopyMat = { shader: new shaders.CopyBright(), lTextures: () => this.lTextures, threshold: 1.0 };
-    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 2.0, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
+    this.materials.copyMat = { shader: new shaders.CopyToDefaultFB(), exposure: 3.2, basic: () => this.pTextures.pGen3, post: () => this.pTextures.pGen1, depth: () => this.lTextures.lDepth };
     this.materials.blurMat = { shader: new shaders.GBlur(), from: () => this.pTextures.gBright, horizontal: false };
     this.materials.volumeMat = { shader: new shaders.VolumetricShader(), pGen2: () => this.pTextures.pGen2, lightDepthTexture: () => this.lightDepthTexture, sunViewOrig: () => this.sunViewOrig, sunView: () => this.sunView, sunProj: () => this.sunProj, lTextures: () => this.lTextures, caustics: this.textures.caustic };
     this.materials.depthFogMat = { shader: new shaders.DepthFogShader(), lTextures: () => this.lTextures };
@@ -228,6 +264,7 @@ export class Test extends Component {
     this.materials.basicShadow = { shader: new shaders.ShadowShaderBase(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.fishShadow = { shader: new shaders.FishShadowShaderInstanced(), proj: () => this.sunProj, view: () => this.sunView };
     this.materials.sharkShadow = { shader: new shaders.SharkShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.crabShadow = { shader: new shaders.ShadowShaderBlendShape(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
       shader: new shaders.WaterSurfaceShader(), //new shaders.WaterMeshShader(),
@@ -244,12 +281,23 @@ export class Test extends Component {
       smoothness: 10
     };
 
-    this.materials.sand = { shader: new shaders.GeometryShaderTextured(), ambientScale: 1 / 5, textureScale: 100, texAlbedo: new Texture("assets/textures/sand/sand_albedo.png"), texARM: new Texture("assets/textures/sand/sand_arm.png"), texNormal: new Texture("assets/textures/sand/sand_norm.png") };
+    this.materials.kelp = { shader: new shaders.GeometryShader(), color: vec4(0.1804, 0.5451, 0.3412, 2.0).times(1 / 2), specularColor: vec4(0.8, 1, 0.03, 0.5) };
+    this.materials.coral = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.coral, roughness: 0.5, metallic: 0.25, ambient: 0.7 };
+    this.materials.tubecoral = { shader: new shaders.TubeCoralShader(), texAlbedo: this.textures.tubecoral, roughness: 0.5, metallic: 0.25, ambient: 0.7 };
+    this.materials.pkelp = { shader: new shaders.KelpGeometryShader(), texAlbedo: this.textures.kelp, roughness: 0.9, metallic: 0.25, ambient: 0.7 };
+    this.materials.pkelpShadow = { shader: new shaders.ShadowShaderKelp(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.pkelp2 = { shader: new shaders.KelpGeometryShader2(), texAlbedo: this.textures.kelp2, roughness: 0.5, metallic: 0.25, ambient: 0.3 };
+    this.materials.pkelpShadow2 = { shader: new shaders.ShadowShaderKelp2(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.tubecoralshadow = { shader: new shaders.TubeCoralShadowShader(), proj: () => this.sunProj, view: () => this.sunView };
+    this.materials.sand = { shader: new shaders.SandGeometryShader(), tiling: 45, texAlbedo: this.textures.sand, roughness: 0.8, metallic: 0.35, ambient: 0.15 };
+    this.materials.sand2 = { shader: new shaders.SandShader2(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 70.0, ambientScale: 1.0, texGamma: 3.2, texAlbedo2: this.textures.sandDg, texARM2: this.textures.sandARMg, texNormal2: this.textures.sandNg, textureScale2: 110.0 };
+    this.materials.sand3 = { shader: new shaders.GeometryShaderTextured(), texAlbedo: this.textures.sandD, texARM: this.textures.sandARM, texNormal: this.textures.sandN, textureScale: 110.0, ambientScale: 6.5, texGamma: 2.2 };
     this.materials.trout = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish1, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout2 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish2, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout3 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish3, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
     this.materials.trout4 = { shader: new shaders.FishGeometryShaderInstanced(), texAlbedo: this.textures.fish4, roughness: 0.8, metallic: 0.35, ambient: 1.0 };
-    this.materials.shark = { shader: new shaders.SharkGeometryShader(), texAlbedo: new Texture('/assets/meshes/shark/GreatWhiteShark.png'), roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.shark = { shader: new shaders.SharkGeometryShader(), texAlbedo: this.textures.shark, roughness: 0.8, metallic: 0.35, ambient: 2.0 };
+    this.materials.crab = { shader: new shaders.GeometryShaderTexturedMinimalBlendShape(), t: 1.0, texAlbedo: this.textures.crab, roughness: 0.9, metallic: 0.0, ambient: 1.0 };
   }
 
   createTextures() {
@@ -270,11 +318,26 @@ export class Test extends Component {
       zneg: new Texture("assets/textures/water_cubemap/zpos.jpg"),
       zpos: new Texture("assets/textures/water_cubemap/zneg.jpg"),
     };
+
+    this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
+    this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
+    this.textures.kelp = new Texture('/assets/meshes/kelp/kelpAlbedo.jpg');
+    this.textures.kelp2 = new Texture('/assets/meshes/kelp/kelp2Albedo.png');
+    this.textures.sand = new Texture('/assets/textures/sand/beach_sand.png');
+    this.textures.sandD = new Texture('/assets/textures/sand/aerial_diff.png');
+    this.textures.sandARM = new Texture('/assets/textures/sand/aerial_arm.png');
+    this.textures.sandN = new Texture('/assets/textures/sand/aerial_norm.png');
+    this.textures.sandDg = new Texture('/assets/textures/sand/sand_g_d.png');
+    this.textures.sandARMg = new Texture('/assets/textures/sand/sand_g_arm.png');
+    this.textures.sandNg = new Texture('/assets/textures/sand/sand_g_n.png');
+    this.textures.coral = new Texture('/assets/meshes/coral/coralsmall.png');
+    this.textures.tubecoral = new Texture('/assets/meshes/coral/tubetex.png');
   }
 
   firstTimeSetup(context) {
     const gl = context.context;
-    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 8192, gl.canvas.width, gl.canvas.height);
+
+    let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 4096, gl.canvas.width, gl.canvas.height);
     this.FBOs = _FBOs, this.gTextures = _gTextures, this.lTextures = _lTextures, this.pTextures = _pTextures, this.cTextures = _cTextures, this.lightDepthTexture = _lightDepthTexture, this.lightColorTexture = _lightColorTexture;
 
     this.uniforms.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 1000);
@@ -290,6 +353,44 @@ export class Test extends Component {
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.enable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
+  }
+
+  spawnCrabs() {
+    const crab = new utils.SceneObject(this.shapes.crab, this.materials.crab, Mat4.scale(1, 1, 1), "crab", "deferred", "TRIANGLES", true, this.materials.crabShadow);
+    let crab_x_saturation_factor = 1;
+    let crab_z_saturation_factor = 1;
+    let crab_orientation_factor = 0;
+    this.crab_num = 10;
+    for (this.crab_index = 0; this.crab_index < this.crab_num; this.crab_index++) {
+
+      if (Math.random() > 0.5) {
+        crab_x_saturation_factor = -1;
+      }
+      else {
+        crab_x_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_z_saturation_factor = -1;
+      }
+      else {
+        crab_z_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_x_saturation_factor = -1;
+      }
+      else {
+        crab_x_saturation_factor = 1;
+      }
+      if (Math.random() > 0.5) {
+        crab_orientation_factor = 1;
+      }
+      else {
+        crab_orientation_factor = 0;
+      }
+
+      this.sceneObjects.push(new objects.crab(crab, "crab_" + this.crab_index, Mat4.translation((Math.random()) * 120 * crab_x_saturation_factor, -84.4, (Math.random()) * 120 * crab_z_saturation_factor).times(Mat4.rotation(Math.PI * crab_orientation_factor, 0, 1, 0)), this.sceneBounds));
+
+    }
   }
 
   //engine stuff
@@ -317,13 +418,13 @@ export class Test extends Component {
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.viewport(0, 0, 8192, 8192);
+    gl.viewport(0, 0, 4096, 4096);
 
-    this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], 35, this.uniforms.camera_transform[2][3], 0));
+    this.uniforms.directionalLights[0].updatePosition(vec4(this.uniforms.camera_transform[0][3], 35, this.uniforms.camera_transform[2][3] - 150, 0));
 
     if (this.sunViewOrig == undefined) {
       this.sunViewOrig = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
-      this.sunProj = Mat4.orthographic(-300, 300, -300, 300, 0.5, 150);
+      this.sunProj = Mat4.orthographic(-400, 250, -400, 250, 0.5, 150);
       // this.sunProj = Mat4.perspective(140 * Math.PI / 180, 1, 0.5, 150);
     }
     this.sunView = Mat4.look_at(this.uniforms.directionalLights[0].position.copy(), this.uniforms.directionalLights[0].position.to3().minus(this.uniforms.directionalLights[0].direction.to3()), vec3(0, 1, 0));
@@ -691,6 +792,7 @@ export class Test extends Component {
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
   }
+
 }
 
 function clamp(x, y, z) {
@@ -718,5 +820,10 @@ class WaterPlane2 extends Shape {
               }
           }
       }
+  }
+
+  render_controls() {
+    this.key_triggered_button("Pause movement", ["p"], () => this.paused = !this.paused);
+    this.new_line();
   }
 }

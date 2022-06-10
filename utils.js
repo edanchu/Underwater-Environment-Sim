@@ -97,6 +97,7 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
     mouse_enabled_canvases = new Set();
     will_take_over_uniforms = true;
     feed = false;
+    thrustMult = 1.0;
 
     set_recipient(matrix_closure, inverse_closure) {
         this.matrix = matrix_closure;
@@ -142,10 +143,10 @@ utils.CustomMovementControls = class CustomMovementControls extends Component {
         this.new_line();
         this.key_triggered_button("Left", ["a"], () => this.thrust[0] = 1, undefined, () => this.thrust[0] = 0);
         this.key_triggered_button("Back", ["s"], () => this.thrust[2] = -1, undefined, () => this.thrust[2] = 0);
-        this.key_triggered_button("Right", ["d"], () => this.thrust[0] = -1, undefined,
-            () => this.thrust[0] = 0);
+        this.key_triggered_button("Right", ["d"], () => this.thrust[0] = -1, undefined, () => this.thrust[0] = 0);
         this.new_line();
         this.key_triggered_button("Down", ["z"], () => this.thrust[1] = 1, undefined, () => this.thrust[1] = 0);
+        this.key_triggered_button("Fast", ["c"], () => this.speed_multiplier == 5 ? this.speed_multiplier = 1 : this.speed_multiplier = 5);
         this.new_line();
         this.key_triggered_button("free mouse", ["f"], () => {
             this.look_around_locked = true;
@@ -411,13 +412,27 @@ utils.SceneObject = class SceneObject {
 
 }
 
-utils.Boid = class Boid {
-    constructor(position, velocity) {
-        this.pos = position.copy();
-        this.v = velocity.copy();
+utils.BlendShape = class BlendShape extends Shape {
+    constructor(shape1, shape2) {
+        super("position", "normal", "texture_coord", "posi", "nor");
+        this.ready = false;
+        this.shape1 = shape1;
+        this.shape2 = shape2;
     }
 
-    update(dt) {
-        this.pos.add_by(this.v.times(dt));
+    draw(caller, uniforms, model_transform, material) {
+        if (this.ready == false) {
+            this.ready = this.shape1.ready && this.shape2.ready;
+            if (this.ready) {
+                this.arrays.position = this.shape1.arrays.position;
+                this.arrays.normal = this.shape1.arrays.normal;
+                this.arrays.texture_coord = this.shape1.arrays.texture_coord;
+                this.arrays.posi = this.shape2.arrays.position;
+                this.arrays.nor = this.shape2.arrays.normal;
+                this.indices = this.shape1.indices;
+            }
+        }
+        if (this.ready)
+            super.draw(caller, uniforms, model_transform, material);
     }
 }

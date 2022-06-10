@@ -245,7 +245,7 @@ const Shader = tiny.Shader =
                 if (!attribute.enabled) {
                     if (attribute.index >= 0) {
                         context.disableVertexAttribArray(attribute.index);
-                        if (attr_name.endsWith("_1")) {
+                        if (attr_name.includes("Transform")) {
                             context.disableVertexAttribArray(attribute.index + 1);
                             context.disableVertexAttribArray(attribute.index + 2);
                             context.disableVertexAttribArray(attribute.index + 3);
@@ -255,16 +255,22 @@ const Shader = tiny.Shader =
                 }
                 context.bindBuffer(context.ARRAY_BUFFER, buffer_pointers[attr_name]);
 
-                if (attr_name.endsWith("_1")) {
+                if (attr_name.includes("Transform")) {
                     for (let i = 0; i < 4; i++) {
                         context.enableVertexAttribArray(attribute.index + i);
                         context.vertexAttribPointer(attribute.index + i, 4, context.FLOAT, attribute.normalized, 64, attribute.pointer + i * 16);
                         context.vertexAttribDivisor(attribute.index + i, 1);
                     }
                 }
+                else if (attr_name.endsWith("_1")) {
+                    context.enableVertexAttribArray(attribute.index);
+                    context.vertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, attribute.stride, attribute.pointer);
+                    context.vertexAttribDivisor(attribute.index, 1);
+                }
                 else {
                     context.enableVertexAttribArray(attribute.index);
                     context.vertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, attribute.stride, attribute.pointer);
+                    context.vertexAttribDivisor(attribute.index, 0);
                 }
             }
         }                           // Your custom Shader has to override the following functions:
