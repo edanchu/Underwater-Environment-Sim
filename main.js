@@ -3,11 +3,16 @@ import { utils } from './utils.js';
 import { shaders } from './shaders.js';
 import { Shape_From_File } from './examples/obj-file-demo.js';
 import { objects } from './objects.js';
+import { WaterSim } from './watersim.js';
 
 const { vec3, vec4, color, Mat4, Shape, Shader, Texture, Component } = tiny;
 
 export class Test extends Component {
   init() {
+
+    this.waterPlaneTransf = Mat4.translation(0, 20, 0).times(Mat4.scale(300, 70, 300));
+    this.waterPlaneTransfInv = Mat4.scale(1/300, 1/70, 1/300).times(Mat4.translation(0, -20, 0));
+
     this.createShapes();
     this.createTextures();
     this.createMaterials();
@@ -19,10 +24,31 @@ export class Test extends Component {
     this.pTextures = {};
     this.lightDepthTexture = null;
 
+    this.cubemapsLoaded = false;
     this.paused = false;
 
     this.uniforms.pointLights = []// [new utils.Light(vec4(0, 4, 15, 1.0), color(0, 0.5, 1, 1), 50, 1)], new utils.Light(vec4(0, 0, -13, 1.0), color(1, 1, 1, 1), 3, 1)];
-    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 4.0, 1)];
+    this.uniforms.directionalLights = [new utils.Light(vec4(5, 35, 5, 0.0), color(0.944, 0.984, 0.991, 1), 3.0, 1)];
+  }
+
+  init_context(context) {
+    const gl = context.context;
+
+    // Construct the water sim:
+    this.waterSim    = new WaterSim(gl, 2048, 2048);
+    this.waterShader = new shaders.WaterSurfaceShader(); //shaders.WaterMeshShader();
+
+    this.waterMaterial = {
+      shader:        this.waterShader,
+      texture:       null, // will be set later
+      lightPosition: vec3(2, 2, 2),
+    };
+
+    // for (var i = 0; i < 20; i++) {
+    //   this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.2, (i & 1) ? 0.05 : -0.05);
+    // }
+
+    this.whenToDistort = 0;
   }
 
   render_animation(context) {
@@ -33,6 +59,12 @@ export class Test extends Component {
       this.firstTimeSetup(context);
     }
 
+    if (!this.cubemapsLoaded) {
+      if (this.createCubemap(gl)) {
+        this.cubemapsLoaded = true;
+      }
+    }
+    
     const t = this.t = this.uniforms.animation_time / 1000;
     const dt = this.dt = this.uniforms.animation_delta_time / 1000;
 
@@ -54,6 +86,46 @@ export class Test extends Component {
   render(context) {
     const gl = context.context;
 
+    let ray_org = context.controls.pos;
+    let ray_dir = context.controls.towards;
+
+    let local_ray_org = this.waterPlaneTransfInv.times(vec4(...ray_org, 1.0)).to3();
+    let local_ray_dir = this.waterPlaneTransfInv.times(vec4(...ray_dir, 0.0)).to3();
+
+    const ray_t       = -local_ray_org[1] / local_ray_dir[1];
+    const plane_point = local_ray_org.plus(local_ray_dir.times(ray_t));
+
+    const world_plane_point = this.waterPlaneTransf.times(vec4(...plane_point, 1.0)).to3();
+
+    // Step the water simulation:
+    for (let i = 0; i < 2; i++) {
+      this.waterSim.step(gl);
+      this.waterSim.step(gl); 
+    }
+    this.waterSim.normals(gl);
+
+    // Get the water particle texture:
+    this.materials.water.waterParticles = this.waterSim.particleTexture();
+    this.materials.water.lightPosition = vec3(100, -20, 100);
+
+    this.whenToDistort += 1;
+
+    if (context.controls.feed) {
+      console.log(plane_point.to_string());
+      this.waterSim.drop(gl, 0, 0, 0.1, 0.01);
+
+      const transform = Mat4.translation(...world_plane_point).times(Mat4.scale(0.2, 0.4, 0.2));
+      this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, { shader: new shaders.GeometryShader(), color: vec4(1, 1, 0, 1.0), specularColor: vec4(0.8, 1, 0.03, 0.5) }, transform, "bait"));
+
+      context.controls.feed = false;
+    }
+
+    if (this.whenToDistort % 256 === 0) {
+      for (var i = 0; i < 20; i++) {
+        this.waterSim.drop(gl, Math.random() * 2 - 1, Math.random() * 2 - 1, 0.1, (i & 1) ? 0.03 : -0.03);
+      }
+    }
+
     //draw light depth buffer for sun shadows
     this.drawSunShadows(context);
 
@@ -61,6 +133,7 @@ export class Test extends Component {
 
     //deferred geometry
     this.sceneObjects.map((x) => { if (x.pass == "deferred") x.draw(context, this.uniforms) });
+
     //lights
     this.bindLBufferForLights(gl, this.FBOs.lBuffer);
 
@@ -71,6 +144,7 @@ export class Test extends Component {
     //forward pass
     this.prepForForwardPass(gl, this.FBOs.lBuffer, this.FBOs.gBuffer);
     this.sceneObjects.map((x) => { if (x.pass == "forward") x.draw(context, this.uniforms) });
+
     //postprocess
     this.depthFogPass(context);
     this.volumePass(context);
@@ -82,9 +156,10 @@ export class Test extends Component {
 
   createSceneObjects() {
     this.sceneObjects = [];
-    this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(this.uniforms.camera_transform[0][3], 20, this.uniforms.camera_transform[2][3]), "water", "forward", "TRIANGLE_STRIP", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand3, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
+    //this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.waterPlane, this.materials.water, this.waterPlaneTransf, "water", "forward", "TRIANGLES", false));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
+    // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
 
     this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
@@ -121,16 +196,46 @@ export class Test extends Component {
     this.spawnCrabs();
   }
 
+  createCubemap(gl) {
+    if (!(this.cubemapTextures.xneg.ready && this.cubemapTextures.xpos.ready && this.cubemapTextures.yneg.ready
+      && this.cubemapTextures.ypos.ready && this.cubemapTextures.zneg.ready && this.cubemapTextures.zpos.ready)) {
+        return false;
+    }
+
+    let xneg_org = this.cubemapTextures.xneg;
+    let xneg_new = document.getElementById("xneg");
+
+    this.cubemap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.cubemap);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.xneg.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.xpos.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.yneg.image); // yneg
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.ypos.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.zneg.image);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.cubemapTextures.zpos.image);
+
+    return true;
+  }
+
   createShapes() {
     this.shapes = {};
-    this.planeSize = 1200;
+    this.planeSize = 300;
+
     this.shapes.ball = new defs.Subdivision_Sphere(6);
     this.shapes.lightVolume = new defs.Subdivision_Sphere(4);
     this.shapes.quad = new utils.ScreenQuad(true);
     this.shapes.cube = new defs.Cube();
+
     this.shapes.trout = new defs.Shape_From_File('assets/meshes/trout/trout.obj');
     this.shapes.shark = new defs.Shape_From_File('assets/meshes/shark/shark.obj');
     this.shapes.plane = new utils.TriangleStripPlane(this.planeSize, this.planeSize, vec3(0, 0, 0), 1);
+    this.shapes.waterPlane = new WaterPlane2(200, 200);
 
     const crab1 = new defs.Shape_From_File('assets/meshes/crab/crab1.obj');
     const crab2 = new defs.Shape_From_File('assets/meshes/crab/crab2.obj');
@@ -162,11 +267,13 @@ export class Test extends Component {
     this.materials.crabShadow = { shader: new shaders.ShadowShaderBlendShape(), proj: () => this.sunProj, view: () => this.sunView };
 
     this.materials.water = {
-      shader: new shaders.WaterSurfaceShader(),
+      shader: new shaders.WaterSurfaceShader(), //new shaders.WaterMeshShader(),
       color: color(0.3, 0.7, 1, 1),
       gTextures: () => this.gTextures,
+      sky: () => this.cubemap,
       waterFlow: new Texture('assets/textures/water/flow_speed_noise.png'),
       waterDerivativeHeight: new Texture('assets/textures/water/water_derivative_height.png'),
+      waterParticles: null, // the texture that points to the water particles that we render
       planeSize: this.planeSize,
       specularity: 6.8,
       ambient: 0.3,
@@ -201,6 +308,17 @@ export class Test extends Component {
     this.textures.fish2 = new Texture('assets/meshes/trout/trout2.png');
     this.textures.fish3 = new Texture('assets/meshes/trout/trout3.png');
     this.textures.fish4 = new Texture('assets/meshes/trout/trout4.png');
+
+    // Cube map texture:
+    this.cubemapTextures = {
+      xneg: new Texture("assets/textures/water_cubemap/xneg.jpg"),
+      xpos: new Texture("assets/textures/water_cubemap/xpos.jpg"),
+      yneg: new Texture("assets/textures/water_cubemap/yneg.jpg"),
+      ypos: new Texture("assets/textures/water_cubemap/ypos.jpg"),
+      zneg: new Texture("assets/textures/water_cubemap/zpos.jpg"),
+      zpos: new Texture("assets/textures/water_cubemap/zneg.jpg"),
+    };
+
     this.textures.crab = new Texture('assets/meshes/crab/crab_albedo2.png');
     this.textures.shark = new Texture('/assets/meshes/shark/GreatWhiteShark.png');
     this.textures.kelp = new Texture('/assets/meshes/kelp/kelpAlbedo.jpg');
@@ -218,6 +336,7 @@ export class Test extends Component {
 
   firstTimeSetup(context) {
     const gl = context.context;
+
     let [_FBOs, _gTextures, _lTextures, _pTextures, _cTextures, _lightDepthTexture, _lightColorTexture] = this.framebufferInit(gl, 4096, gl.canvas.width, gl.canvas.height);
     this.FBOs = _FBOs, this.gTextures = _gTextures, this.lTextures = _lTextures, this.pTextures = _pTextures, this.cTextures = _cTextures, this.lightDepthTexture = _lightDepthTexture, this.lightColorTexture = _lightColorTexture;
 
@@ -672,6 +791,35 @@ export class Test extends Component {
     gl.disable(gl.BLEND);
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
+  }
+
+}
+
+function clamp(x, y, z) {
+  return Math.min(Math.max(x, y), z);
+}
+
+class WaterPlane2 extends Shape {
+  // Constructs the shape, using detailx and detaily to specify a resolution:
+  constructor(detailx, detaily) {
+      super("position");
+
+      this.arrays.position = [];
+      this.indices         = [];
+
+      for (let y = 0; y <= detaily; y++) {
+          const t = y / detaily;
+          for (let x = 0; x <= detailx; x++) {
+              const s = x / detailx;
+              this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
+
+              if (x < detailx && y < detaily) {
+                  const i = x + y * (detailx + 1);
+                  this.indices.push(i, i + 1, i + detailx + 1);
+                  this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
+              }
+          }
+      }
   }
 
   render_controls() {

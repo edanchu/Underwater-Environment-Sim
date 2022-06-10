@@ -5,6 +5,284 @@ const { Vector, Vector3, vec3, vec4, Mat4, Matrix } = math;
 
 export const shaders = {};
 
+shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
+    update_GPU(gl, gpu_addresses, uniforms, model_transform, material) {
+        const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform];
+        const PCM       = P.times(C).times(M);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
+
+        gl.uniformMatrix4fv(gpu_addresses.pcm, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
+        gl.uniform3fv(gpu_addresses.lightPosition, material.lightPosition);
+    }
+
+    shared_glsl_code() {
+        return `#version 300 es
+        precision highp float;
+        `;
+    }
+
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            in vec3 position;
+
+            uniform sampler2D particles;
+            uniform mat4      pcm;
+
+            out vec3 pos;
+
+            void main() {
+                // Sample the height of the particle:
+                vec4 particle = texture(particles, position.xy * 0.5 + 0.5);
+
+                // Update the position with the height:
+                pos    = position.xzy;
+                pos.y += particle.r;
+
+                gl_Position = pcm * vec4(pos, 1.0);
+            }
+        `;
+    }
+
+    // Basic phong-shader for now to make sure the ripples are present:
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            uniform sampler2D particles;
+            uniform vec3      lightPosition;
+
+            in  vec3 pos;
+            out vec4 fragColor;
+
+            void main() {
+                vec2 coord    = pos.xz * 0.5 + 0.5;
+                vec4 particle = texture(particles, coord);
+
+                for (int i = 0; i < 5; i++) {
+                    coord   += particle.ba * 0.005; // the normal
+                    particle = texture(particles, coord);
+                }
+
+                vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
+                
+                // ambient:
+                float ambientStrength = 0.1;
+                vec3  ambient         = ambientStrength * vec3(0, 0.1, 0.6); // white light color
+
+                // diffuse:
+                vec3 lightDir = normalize(lightPosition - pos);
+                vec3 diffuse  = max(dot(normal, lightDir), 0.0) * vec3(0.1, 0.3, 0.7);
+
+                fragColor = vec4(ambient + diffuse, 1.0);
+            }
+        `;
+    }
+}
+
+// Particles are written as: (pos.y, vel.y, nrm.x, nrm.z)
+
+// This shader handles updating the normal information of the particle to allow
+// us to render the water:
+shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
+    // The material will hold information about the click and whatnot.
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
+
+        // Update particle information:
+        gl.uniform1f(gpu_addresses.deltax, material.deltax);
+        gl.uniform1f(gpu_addresses.deltay, material.deltay);
+    }
+
+    shared_glsl_code() {
+        return `#version 300 es
+        precision highp float;
+        `;
+    }
+
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            in  vec3 position;
+            out vec2 coord;
+
+            void main() {
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
+            }
+        `;
+    }
+
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            uniform sampler2D particles;
+            uniform float     deltax;
+            uniform float     deltay;
+
+            in  vec2 coord;
+            out vec4 fragColor;
+
+            void main() {
+                vec2 delta    = vec2(deltax, deltay);
+                vec4 particle = texture(particles, coord);
+
+                vec3 dx = vec3(delta.x, texture(particles, vec2(coord.x + delta.x, coord.y)).r - particle.r, 0.0);
+                vec3 dy = vec3(0.0, texture(particles, vec2(coord.x, coord.y + delta.y)).r - particle.r, delta.y);
+
+                particle.ba = normalize(cross(dy, dx)).xz;
+
+                fragColor = particle;
+            }
+        `;
+    }
+}
+
+// Given the current particle buffer, this shader updates the values:
+shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
+
+        // Update particle information:
+        gl.uniform1f(gpu_addresses.deltax, material.deltax);
+        gl.uniform1f(gpu_addresses.deltay, material.deltay);
+    }
+
+    shared_glsl_code() {
+        return `#version 300 es
+        precision highp float;
+        `;
+    }
+
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            in  vec3 position;
+            out vec2 coord;
+
+            void main() {
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
+            }
+        `;
+    }
+
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            uniform sampler2D particles;
+            uniform float     deltax;
+            uniform float     deltay;
+
+            in  vec2 coord;
+            out vec4 fragColor;
+
+            void main() {
+                vec2 delta    = vec2(deltax, deltay);
+                vec4 particle = texture(particles, coord);
+
+                vec2 dx = vec2(delta.x, 0.0);
+                vec2 dy = vec2(0.0, delta.y);
+
+                float average = (
+                    texture(particles, coord - dx).r +
+                    texture(particles, coord - dy).r +
+                    texture(particles, coord + dx).r +
+                    texture(particles, coord + dy).r
+                ) * 0.25;
+
+                particle.g += (average - particle.r) * 2.0;
+                particle.g *= 0.995;
+                particle.r += particle.g;
+
+                fragColor = particle;
+            }
+        `;
+    }
+};
+
+shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
+    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+        // The texture with the current state:
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, material.texture);
+        gl.uniform1i(gpu_addresses.particles, 0);
+
+        // Specify the drop information:
+        gl.uniform1f(gpu_addresses.centerx,  material.posx);
+        gl.uniform1f(gpu_addresses.centery,  material.posy);
+        gl.uniform1f(gpu_addresses.radius,   material.radius);
+        gl.uniform1f(gpu_addresses.strength, material.strength);
+    }
+
+    shared_glsl_code() {
+        return `#version 300 es
+        precision highp float;
+        `;
+    }
+
+    vertex_glsl_code() {
+        return this.shared_glsl_code() + `
+            in  vec3 position;
+            out vec2 coord;
+
+            void main() {
+                coord       = position.xy * 0.5 + 0.5;
+                gl_Position = vec4(position.xyz, 1.0);
+            }
+        `;
+    }
+
+    fragment_glsl_code() {
+        return this.shared_glsl_code() + `
+            const float PI = 3.14159265358979323846;
+
+            uniform sampler2D particles;
+            uniform float     centerx;
+            uniform float     centery;
+            uniform float     radius;
+            uniform float     strength;
+
+            in  vec2 coord;
+            out vec4 fragColor;
+
+            float volumeInSphere(vec3 center) {
+                vec3 toCenter = vec3(coord.x * 2.0 - 1.0, 0.0, coord.y * 2.0 - 1.0) - center;
+                float t = length(toCenter) / radius;
+                float dy = exp(-pow(t * 1.5, 6.0));
+                float ymin = min(0.0, center.y - dy);
+                float ymax = min(max(0.0, center.y + dy), ymin + 2.0 * dy);
+                return (ymax - ymin) * 0.1;
+            }
+
+            void main() {
+                vec2 center   = vec2(centerx, centery);
+                vec4 particle = texture(particles, coord);
+
+                // float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
+                //       drop = 0.5 - cos(drop * PI) * 0.5;
+
+                // particle.r += drop * strength;
+
+                // calculate new sphere location in 3D;
+                vec3 newCenter = vec3(center, -strength);
+                vec3 oldCenter = vec3(center, strength);
+
+                particle.r += volumeInSphere(oldCenter);
+                particle.r -= volumeInSphere(newCenter);
+
+                fragColor = particle;
+            }
+        `;
+    }
+};
+
+//
+// ---------------------------------------------------------------------------------
+//
+
 shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
   update_GPU(context, gpu_addresses, uniforms, model_transform, material) {
     const PC = uniforms.projection_transform.times(uniforms.camera_inverse);
@@ -23,6 +301,19 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
     context.uniform1i(gpu_addresses.waterDerivativeHeight, 2);
 
     context.uniform1f(gpu_addresses.planeSize, material.planeSize);
+
+    // Bind the water particle texture:
+
+    const gl = context;
+
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, material.waterParticles);
+    gl.uniform1i(gpu_addresses.particles, 3);
+
+    let sky = material.sky();
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, sky);
+    gl.uniform1i(gpu_addresses.sky, 4);
   }
 
   shared_glsl_code() {
@@ -34,86 +325,77 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
   vertex_glsl_code() {
     return this.shared_glsl_code() + `
       in vec3 position;
-      in vec3 normal;   
-      in vec2 texture_coord;      
+      //in vec3 normal;   
+      //in vec2 texture_coord;    
+      
+      uniform sampler2D particles;
 
       uniform mat4 projection_camera_transform;
       uniform mat4 modelTransform;
       uniform mat4 viewMatrix;
-      uniform vec3 cameraCenter;
-      uniform float planeSize;
 
       out vec3 vertexWorldspace;
+      out vec3 localPosition;
       out vec2 texCoord;
 
-      void main() { 
-        vec3 p = (modelTransform * vec4(position, 1.0)).xyz;
+      void main() {
+        texCoord = position.xy * 0.5 + 0.5;
+
+        // Distort the position:
+        vec4 particle = texture(particles, texCoord);
+        vec3 newPos   = position.xzy;
+        newPos.y     += particle.r;
+
+        localPosition = newPos;
+
+        vec3 p = (modelTransform * vec4(newPos, 1.0)).xyz;
 
         gl_Position = projection_camera_transform * vec4( p, 1.0 );
         vertexWorldspace = p; 
-        texCoord = texture_coord + vec2(cameraCenter.x, -cameraCenter.z) / planeSize;
       }`;
   }
 
   fragment_glsl_code() {
     return this.shared_glsl_code() + `
+      const float IOR_AIR = 1.0;
+      const float IOR_WATER = 1.333;
+      const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+
       out vec4 FragColor;
 
       uniform sampler2D waterFlow;
       uniform sampler2D waterDerivativeHeight;
+      uniform sampler2D particles;
+      uniform samplerCube sky;
       uniform float time;
       uniform vec4 color;
       uniform vec3 cameraCenter;
 
       in vec3 vertexWorldspace;
+      in vec3 localPosition;
       in vec2 texCoord;
 
-      vec3 GerstnerWave (vec4 wave, vec3 p, inout vec3 tangent, inout vec3 binormal, float timeOffset) {
-        float steepness = wave.z;
-        float wavelength = wave.w;
-        float k = 2.0 * 3.141592653589 / wavelength;
-        float c = sqrt(9.8 / k);
-        vec2 d = normalize(wave.xy);
-        float f = k * (dot(d, p.xz) - c * time / timeOffset);
-        float a = steepness / k;
-    
-        tangent += vec3(
-            -d.x * d.x * (steepness * sin(f)),
-            d.x * (steepness * cos(f)),
-            -d.x * d.y * (steepness * sin(f)));
-        binormal += vec3(
-            -d.x * d.y * (steepness * sin(f)),
-            d.y * (steepness * cos(f)),
-            -d.y * d.y * (steepness * sin(f)));
-        return vec3(
-            d.x * (a * cos(f)),
-            a * sin(f),
-            d.y * (a * cos(f)));
-      }
-
-      float ease(float x){
-        return sqrt(1.0 - pow(x - 1.0, 2.0));
-        // return sin((x * 3.14159) / 2.0);
-        // return 1.0 - pow(1.0 - x, 3.0);
-      }
-
-      vec3 generateWaves(vec3 pos, inout vec3 tan, inout vec3 bin){
-        vec2 dir;
-        vec3 p = pos;
-        float initSteepness = 0.18, initFrequency = 15.0, initSpeed = 3.2;
-        float endSteepness = 0.1, endFrequency = 1.0, endSpeed = 1.8;
-        float steepness, frequency, speed;
-        const float iterations = 25.0;
-        float x, roc = 1.0;
-        for (float i = 0.0; i < iterations; i++){
-          dir = vec2(sin(i / roc), cos(i / roc));
-          x = i/iterations;
-          steepness = mix(initSteepness, endSteepness, ease(x));
-          frequency = mix(initFrequency, endFrequency, ease(x));
-          speed = mix(initSpeed, endSpeed, ease(x));
-          p += GerstnerWave(vec4(dir, steepness, frequency), pos, tan, bin, speed);
+      vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
+        /*
+        vec3 color;
+        if (ray.y < 0.0) {
+          vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
+          color = vec3(getWallColor(origin + ray * t.y);
+        } else {
+          vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));\
+          vec3 hit = origin + ray * t.y;
+          if (hit.y < 2.0 / 12.0) {
+            color = getWallColor(hit);
+          } else {
+            color = textureCube(sky, ray).rgb;
+            color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);\
+          }
         }
-        return p;
+        if (ray.y < 0.0) color *= waterColor;
+        return color;
+        */
+
+        return texture(sky, ray).rgb;
       }
 
       vec3 Distort (vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB) {
@@ -141,10 +423,35 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 uvwA = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
         vec3 uvwB = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
         float heightScale = (flow.z * 0.25 + 0.75) * 0.2;
-        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy)) * uvwA.z * heightScale;
-        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy)) * uvwB.z * heightScale;
+        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy * 2.0)) * uvwA.z * heightScale;
+        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy * 2.0)) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
-        vec3 normal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
+        vec3 textNormal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
+
+        vec2 coord    = texCoord;
+        vec4 particle = texture(particles, coord);
+
+        for (int i = 0; i < 5; i++) {
+            coord   += particle.ba * 0.005; // the normal
+            particle = texture(particles, coord);
+        }
+
+        vec3 normal = vec3(particle.b, sqrt(1.0 - dot(particle.ba, particle.ba)), particle.a);
+
+        
+        if (normal == vec3(0.0, 1.0, 0.0)) {
+            normal = textNormal;
+        } else {
+            normal = normalize(textNormal + normal);
+        }
+        
+
+        //normal;
+
+        float ratio = 1.3325;
+        vec3 I = normalize(vertexWorldspace - cameraCenter);
+        vec3 R = refract(I, normalize(normal), ratio);
+        FragColor = vec4(texture(sky, -R).rgb * 2.6, 1.0);
         
         vec3 viewDir = normalize(vertexWorldspace - cameraCenter);
         float angle = acos(dot(viewDir, normal));
@@ -154,8 +461,12 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         waterColor = mix(waterColor, vec3(.09, 0.195, 0.33) / 3.0, clamp(1.0 - pow(1.0 - length(vertexWorldspace - cameraCenter) / 150.0, 3.0), 0.0, 1.0));
         float b = step(clamp(angle, 0.0, 1.0), limit);
         vec3 finColor = b * mix(color.xyz, vec3(3,3,3), clamp(1.0 - angle, 0.0, 1.0)) + (1.0 - b)*waterColor;
+
+        if (R.y == 0.0) {
+          FragColor = vec4(waterColor, 1.0);
+        }
         
-        FragColor = vec4(finColor, 1.0);
+        //FragColor = vec4(finColor, 1.0);
       }`;
   }
 }
