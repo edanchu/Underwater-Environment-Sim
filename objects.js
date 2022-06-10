@@ -14,7 +14,7 @@ export const objects = {};
 
 objects.WaterPlane = class WaterPlane extends utils.SceneObject {
     draw(context, uniforms) {
-        this.shape.draw(context, uniforms, Mat4.translation(uniforms.camera_transform[0][3], 20, uniforms.camera_transform[2][3]), this.material, this.drawType);
+        this.shape.draw(context, uniforms, Mat4.translation(uniforms.camera_transform[0][3], 0, uniforms.camera_transform[2][3]).times(this.transform), this.material, this.drawType);
     }
 }
 

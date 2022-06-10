@@ -11,7 +11,7 @@ export class Test extends Component {
   init() {
 
     this.waterPlaneTransf = Mat4.translation(0, 20, 0).times(Mat4.scale(300, 70, 300));
-    this.waterPlaneTransfInv = Mat4.scale(1/300, 1/70, 1/300).times(Mat4.translation(0, -20, 0));
+    this.waterPlaneTransfInv = Mat4.scale(1 / 300, 1 / 70, 1 / 300).times(Mat4.translation(0, -20, 0));
 
     this.createShapes();
     this.createTextures();
@@ -35,12 +35,12 @@ export class Test extends Component {
     const gl = context.context;
 
     // Construct the water sim:
-    this.waterSim    = new WaterSim(gl, 2048, 2048);
+    this.waterSim = new WaterSim(gl, 2048, 2048);
     this.waterShader = new shaders.WaterSurfaceShader(); //shaders.WaterMeshShader();
 
     this.waterMaterial = {
-      shader:        this.waterShader,
-      texture:       null, // will be set later
+      shader: this.waterShader,
+      texture: null, // will be set later
       lightPosition: vec3(2, 2, 2),
     };
 
@@ -64,7 +64,7 @@ export class Test extends Component {
         this.cubemapsLoaded = true;
       }
     }
-    
+
     const t = this.t = this.uniforms.animation_time / 1000;
     const dt = this.dt = this.uniforms.animation_delta_time / 1000;
 
@@ -92,7 +92,7 @@ export class Test extends Component {
     let local_ray_org = this.waterPlaneTransfInv.times(vec4(...ray_org, 1.0)).to3();
     let local_ray_dir = this.waterPlaneTransfInv.times(vec4(...ray_dir, 0.0)).to3();
 
-    const ray_t       = -local_ray_org[1] / local_ray_dir[1];
+    const ray_t = -local_ray_org[1] / local_ray_dir[1];
     const plane_point = local_ray_org.plus(local_ray_dir.times(ray_t));
 
     const world_plane_point = this.waterPlaneTransf.times(vec4(...plane_point, 1.0)).to3();
@@ -100,7 +100,7 @@ export class Test extends Component {
     // Step the water simulation:
     for (let i = 0; i < 2; i++) {
       this.waterSim.step(gl);
-      this.waterSim.step(gl); 
+      this.waterSim.step(gl);
     }
     this.waterSim.normals(gl);
 
@@ -157,9 +157,9 @@ export class Test extends Component {
   createSceneObjects() {
     this.sceneObjects = [];
     //this.sceneObjects.push(new objects.WaterPlane(this.shapes.plane, this.materials.water, Mat4.translation(0, 20, 0), "water", "forward", "TRIANGLE_STRIP", false));
-    this.sceneObjects.push(new utils.SceneObject(this.shapes.waterPlane, this.materials.water, this.waterPlaneTransf, "water", "forward", "TRIANGLES", false));
+    this.sceneObjects.push(new objects.WaterPlane(this.shapes.waterPlane, this.materials.water, this.waterPlaneTransf, "water", "forward", "TRIANGLES", false));
     this.sceneObjects.push(new utils.SceneObject(this.shapes.ball, { ...this.materials.plastic, color: color(.09 / 2, 0.195 / 2, 0.33 / 2, 1.0), ambient: 1.0, diffusivity: 0.0, specularity: 0.0 }, Mat4.scale(500, 500, 500), "skybox", "forward"));
-    // this.sceneObjects.push(new utils.SceneObject(this.shapes.plane, this.materials.geometryMaterial, Mat4.translation(-10, 10, -10).times(Mat4.scale(1 / 3, 1, 1 / 3)), "ground", "deferred", "TRIANGLE_STRIP", true, this.materials.basicShadow));
+    this.sceneObjects.push(new utils.SceneObject(this.shapes.cube, this.materials.sand3, Mat4.translation(0, -85, 0).times(Mat4.scale(3000, 0.1, 3000)), "ground", "deferred", "TRIANGLE_STRIP", false));
 
     this.sceneBounds = [[-125, 125], [-75, 25], [-125, 125]];
 
@@ -199,7 +199,7 @@ export class Test extends Component {
   createCubemap(gl) {
     if (!(this.cubemapTextures.xneg.ready && this.cubemapTextures.xpos.ready && this.cubemapTextures.yneg.ready
       && this.cubemapTextures.ypos.ready && this.cubemapTextures.zneg.ready && this.cubemapTextures.zpos.ready)) {
-        return false;
+      return false;
     }
 
     let xneg_org = this.cubemapTextures.xneg;
@@ -793,6 +793,11 @@ export class Test extends Component {
     gl.enable(gl.DEPTH_TEST);
   }
 
+  render_controls() {
+    this.key_triggered_button("Pause movement", ["p"], () => this.paused = !this.paused);
+    this.new_line();
+  }
+
 }
 
 function clamp(x, y, z) {
@@ -802,28 +807,23 @@ function clamp(x, y, z) {
 class WaterPlane2 extends Shape {
   // Constructs the shape, using detailx and detaily to specify a resolution:
   constructor(detailx, detaily) {
-      super("position");
+    super("position");
 
-      this.arrays.position = [];
-      this.indices         = [];
+    this.arrays.position = [];
+    this.indices = [];
 
-      for (let y = 0; y <= detaily; y++) {
-          const t = y / detaily;
-          for (let x = 0; x <= detailx; x++) {
-              const s = x / detailx;
-              this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
+    for (let y = 0; y <= detaily; y++) {
+      const t = y / detaily;
+      for (let x = 0; x <= detailx; x++) {
+        const s = x / detailx;
+        this.arrays.position.push(vec3(2 * s - 1, 2 * t - 1, 0));
 
-              if (x < detailx && y < detaily) {
-                  const i = x + y * (detailx + 1);
-                  this.indices.push(i, i + 1, i + detailx + 1);
-                  this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
-              }
-          }
+        if (x < detailx && y < detaily) {
+          const i = x + y * (detailx + 1);
+          this.indices.push(i, i + 1, i + detailx + 1);
+          this.indices.push(i + detailx + 1, i + 1, i + detailx + 2);
+        }
       }
-  }
-
-  render_controls() {
-    this.key_triggered_button("Pause movement", ["p"], () => this.paused = !this.paused);
-    this.new_line();
+    }
   }
 }

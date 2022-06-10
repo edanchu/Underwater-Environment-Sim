@@ -6,26 +6,26 @@ const { Vector, Vector3, vec3, vec4, Mat4, Matrix } = math;
 export const shaders = {};
 
 shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
-    update_GPU(gl, gpu_addresses, uniforms, model_transform, material) {
-        const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform];
-        const PCM       = P.times(C).times(M);
+  update_GPU(gl, gpu_addresses, uniforms, model_transform, material) {
+    const [P, C, M] = [uniforms.projection_transform, uniforms.camera_inverse, model_transform];
+    const PCM = P.times(C).times(M);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, material.texture);
-        gl.uniform1i(gpu_addresses.particles, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, material.texture);
+    gl.uniform1i(gpu_addresses.particles, 0);
 
-        gl.uniformMatrix4fv(gpu_addresses.pcm, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
-        gl.uniform3fv(gpu_addresses.lightPosition, material.lightPosition);
-    }
+    gl.uniformMatrix4fv(gpu_addresses.pcm, false, Matrix.flatten_2D_to_1D(PCM.transposed()));
+    gl.uniform3fv(gpu_addresses.lightPosition, material.lightPosition);
+  }
 
-    shared_glsl_code() {
-        return `#version 300 es
+  shared_glsl_code() {
+    return `#version 300 es
         precision highp float;
         `;
-    }
+  }
 
-    vertex_glsl_code() {
-        return this.shared_glsl_code() + `
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
             in vec3 position;
 
             uniform sampler2D particles;
@@ -44,11 +44,11 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                 gl_Position = pcm * vec4(pos, 1.0);
             }
         `;
-    }
+  }
 
-    // Basic phong-shader for now to make sure the ripples are present:
-    fragment_glsl_code() {
-        return this.shared_glsl_code() + `
+  // Basic phong-shader for now to make sure the ripples are present:
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
             uniform sampler2D particles;
             uniform vec3      lightPosition;
 
@@ -77,7 +77,7 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
                 fragColor = vec4(ambient + diffuse, 1.0);
             }
         `;
-    }
+  }
 }
 
 // Particles are written as: (pos.y, vel.y, nrm.x, nrm.z)
@@ -85,26 +85,26 @@ shaders.WaterMeshShader = class WaterMeshShader extends tiny.Shader {
 // This shader handles updating the normal information of the particle to allow
 // us to render the water:
 shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
-    // The material will hold information about the click and whatnot.
-    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
-        // The texture with the current state:
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, material.texture);
-        gl.uniform1i(gpu_addresses.particles, 0);
+  // The material will hold information about the click and whatnot.
+  update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+    // The texture with the current state:
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, material.texture);
+    gl.uniform1i(gpu_addresses.particles, 0);
 
-        // Update particle information:
-        gl.uniform1f(gpu_addresses.deltax, material.deltax);
-        gl.uniform1f(gpu_addresses.deltay, material.deltay);
-    }
+    // Update particle information:
+    gl.uniform1f(gpu_addresses.deltax, material.deltax);
+    gl.uniform1f(gpu_addresses.deltay, material.deltay);
+  }
 
-    shared_glsl_code() {
-        return `#version 300 es
+  shared_glsl_code() {
+    return `#version 300 es
         precision highp float;
         `;
-    }
+  }
 
-    vertex_glsl_code() {
-        return this.shared_glsl_code() + `
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
             in  vec3 position;
             out vec2 coord;
 
@@ -113,10 +113,10 @@ shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
                 gl_Position = vec4(position.xyz, 1.0);
             }
         `;
-    }
+  }
 
-    fragment_glsl_code() {
-        return this.shared_glsl_code() + `
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
             uniform sampler2D particles;
             uniform float     deltax;
             uniform float     deltay;
@@ -136,30 +136,30 @@ shaders.WaterSimNormalShader = class WaterSimNormalShader extends tiny.Shader {
                 fragColor = particle;
             }
         `;
-    }
+  }
 }
 
 // Given the current particle buffer, this shader updates the values:
 shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
-    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
-        // The texture with the current state:
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, material.texture);
-        gl.uniform1i(gpu_addresses.particles, 0);
+  update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+    // The texture with the current state:
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, material.texture);
+    gl.uniform1i(gpu_addresses.particles, 0);
 
-        // Update particle information:
-        gl.uniform1f(gpu_addresses.deltax, material.deltax);
-        gl.uniform1f(gpu_addresses.deltay, material.deltay);
-    }
+    // Update particle information:
+    gl.uniform1f(gpu_addresses.deltax, material.deltax);
+    gl.uniform1f(gpu_addresses.deltay, material.deltay);
+  }
 
-    shared_glsl_code() {
-        return `#version 300 es
+  shared_glsl_code() {
+    return `#version 300 es
         precision highp float;
         `;
-    }
+  }
 
-    vertex_glsl_code() {
-        return this.shared_glsl_code() + `
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
             in  vec3 position;
             out vec2 coord;
 
@@ -168,10 +168,10 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
                 gl_Position = vec4(position.xyz, 1.0);
             }
         `;
-    }
+  }
 
-    fragment_glsl_code() {
-        return this.shared_glsl_code() + `
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
             uniform sampler2D particles;
             uniform float     deltax;
             uniform float     deltay;
@@ -200,31 +200,31 @@ shaders.WaterSimStepShader = class WaterSimStepShader extends tiny.Shader {
                 fragColor = particle;
             }
         `;
-    }
+  }
 };
 
 shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
-    update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
-        // The texture with the current state:
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, material.texture);
-        gl.uniform1i(gpu_addresses.particles, 0);
+  update_GPU(gl, gpu_addresses, _uniforms, _model_transform, material) {
+    // The texture with the current state:
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, material.texture);
+    gl.uniform1i(gpu_addresses.particles, 0);
 
-        // Specify the drop information:
-        gl.uniform1f(gpu_addresses.centerx,  material.posx);
-        gl.uniform1f(gpu_addresses.centery,  material.posy);
-        gl.uniform1f(gpu_addresses.radius,   material.radius);
-        gl.uniform1f(gpu_addresses.strength, material.strength);
-    }
+    // Specify the drop information:
+    gl.uniform1f(gpu_addresses.centerx, material.posx);
+    gl.uniform1f(gpu_addresses.centery, material.posy);
+    gl.uniform1f(gpu_addresses.radius, material.radius);
+    gl.uniform1f(gpu_addresses.strength, material.strength);
+  }
 
-    shared_glsl_code() {
-        return `#version 300 es
+  shared_glsl_code() {
+    return `#version 300 es
         precision highp float;
         `;
-    }
+  }
 
-    vertex_glsl_code() {
-        return this.shared_glsl_code() + `
+  vertex_glsl_code() {
+    return this.shared_glsl_code() + `
             in  vec3 position;
             out vec2 coord;
 
@@ -233,10 +233,10 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
                 gl_Position = vec4(position.xyz, 1.0);
             }
         `;
-    }
+  }
 
-    fragment_glsl_code() {
-        return this.shared_glsl_code() + `
+  fragment_glsl_code() {
+    return this.shared_glsl_code() + `
             const float PI = 3.14159265358979323846;
 
             uniform sampler2D particles;
@@ -276,7 +276,7 @@ shaders.WaterSimDropShader = class WaterSimDropShader extends tiny.Shader {
                 fragColor = particle;
             }
         `;
-    }
+  }
 };
 
 //
@@ -334,12 +334,14 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
       uniform mat4 modelTransform;
       uniform mat4 viewMatrix;
 
+      uniform vec3 cameraCenter;
+
       out vec3 vertexWorldspace;
       out vec3 localPosition;
       out vec2 texCoord;
 
       void main() {
-        texCoord = position.xy * 0.5 + 0.5;
+        texCoord = (position.xy * 0.5 + 0.5) + vec2(cameraCenter.x, cameraCenter.z) / 300.0;
 
         // Distort the position:
         vec4 particle = texture(particles, texCoord);
@@ -423,8 +425,8 @@ shaders.WaterSurfaceShader = class WaterSurfaceShader extends tiny.Shader {
         vec3 uvwA = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, false);
         vec3 uvwB = Distort(texCoord * 4.0, flow.xy, vec2(0.24), -0.5, 15.0, time / 25.0, true);
         float heightScale = (flow.z * 0.25 + 0.75) * 0.2;
-        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy * 2.0)) * uvwA.z * heightScale;
-        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy * 2.0)) * uvwB.z * heightScale;
+        vec3 dhA = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwA.xy )) * uvwA.z * heightScale;
+        vec3 dhB = UnpackDerivativeHeight(texture(waterDerivativeHeight, uvwB.xy )) * uvwB.z * heightScale;
         mat3 tbn = mat3(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0));
         vec3 textNormal = tbn * normalize(vec3(-(dhA.xy + dhB.xy), 1.0));
 
